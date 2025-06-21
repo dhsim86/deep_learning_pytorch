@@ -1,0 +1,26 @@
+# refers https://github.com/github/gitignore/blob/main/Python.gitignore
+
+# logs
+app.log
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.venv
+venv/
+venv.bak/
+
+# PyCharm
+.idea/
+
+# VS Code
+.vscode/
+
+# mac OS
+.DS_Store
+
+# custom-instruction.md
+.github/
