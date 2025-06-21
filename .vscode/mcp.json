@@ -1,0 +1,24 @@
+{
+  "servers": {
+    "sequentialthinking": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "mcp/sequentialthinking:latest"
+      ]
+    },
+    "memory": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "-v",
+        "use-mcp-memory:/app/dist",
+        "--rm",
+        "mcp/memory:latest"
+      ]
+    }
+  }
+}
