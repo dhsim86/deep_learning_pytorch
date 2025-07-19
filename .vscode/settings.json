@@ -5,12 +5,15 @@
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,
   "terminal.integrated.env.linux": {
-    "PYTHONPATH": "${workspaceFolder}"
+    "PYTHONPATH": "${workspaceFolder}",
+    "python.envFile": "${workspaceFolder}/.env"
   },
   "terminal.integrated.env.osx": {
-    "PYTHONPATH": "${workspaceFolder}"
+    "PYTHONPATH": "${workspaceFolder}",
+    "python.envFile": "${workspaceFolder}/.env"
   },
   "terminal.integrated.env.windows": {
-    "PYTHONPATH": "${workspaceFolder}"
+    "PYTHONPATH": "${workspaceFolder}",
+    "python.envFile": "${workspaceFolder}/.env"
   }
 }

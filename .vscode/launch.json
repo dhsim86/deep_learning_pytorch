@@ -5,7 +5,8 @@
       "request": "launch",
       "program": "${file}",
       "env": {
-        "PYTHONPATH": "${workspaceFolder}"
+        "PYTHONPATH": "${workspaceFolder}",
+        "NLTK_DATA": "F:\\ai\\nltk_data"
       }
     }
   ]
