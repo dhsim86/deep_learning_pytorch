@@ -5,6 +5,6 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "konlpy>=0.6.0", # Korean Natural Language Processing
-    "nltk>=3.9.1", # Natural Language Toolkit
+    "konlpy>=0.6.0", # Korean Natural Language Processing, 한국어 자연어 처리를 위한 형태소 분석기 패키지
+    "nltk>=3.9.1", # Natural Language Toolkit, 자연어 처리를 위한 파이썬 패키지
 ]
