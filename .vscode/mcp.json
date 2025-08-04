@@ -9,6 +9,7 @@
         "mcp/sequentialthinking:latest"
       ]
     },
+    /*
     "memory": {
       "command": "docker",
       "args": [
@@ -19,6 +20,6 @@
         "--rm",
         "mcp/memory:latest"
       ]
-    }
+    }*/
   }
 }

@@ -15,7 +15,7 @@
   },
   "terminal.integrated.env.osx": {
     "PYTHONPATH": "${workspaceFolder}",
-    "python.envFile": "${workspaceFolder}/.env"
+    "python.envFile": "${workspaceFolder}/.env.mac"
   },
   "terminal.integrated.env.windows": {
     "PYTHONPATH": "${workspaceFolder}",
