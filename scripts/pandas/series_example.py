@@ -14,3 +14,6 @@ if __name__ == "__main__":
     # 값과 인덱스 출력
     print(f"시리즈의 값: {sr.values}")
     print(f"시리즈의 인덱스: {sr.index}")
+
+    print(sr["피자"])   # 피자의 값 출력
+    print(sr.iloc[0])   # 첫 번째 값 출력
