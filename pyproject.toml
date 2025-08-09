@@ -12,15 +12,17 @@ dependencies = [
     "pandas>=2.3.1", # 파이썬 데이터 처리를 위한 라이브러리
     "pyqt6>=6.9.1", # matplotlib을 시각화할 때 사용
     "scikit-learn>=1.7.1", # 머신러닝을 위한 파이썬 패키지
-    "torch~=2.7.1"
+    "torch~=2.7.1"  # torch
 ]
 
+# torch CUDA index
 [[tool.uv.index]]
 name = "pytorch-cu118"
 url = "https://download.pytorch.org/whl/cu118"
 explicit = true
 
 [tool.uv.sources]
+# if the system is not macOS, use the CUDA index
 torch = [
-  { index = "pytorch-cu118" }
+  { index = "pytorch-cu118", marker = "sys_platform != 'darwin'" }
 ]
