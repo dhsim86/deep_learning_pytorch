@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "konlpy>=0.6.0", # 한국어 자연어 처리를 위한 형태소 분석기 패키지
-    "matplotlib>=3.10.3", #  데이터를 차트 (chart) 나 플롯 (plot) 으로 시각화하는 패키지
+    "matplotlib>=3.10.3", #  데이터를 차트(chart)나 플롯(plot)으로 시각화하는 패키지
     "nltk>=3.9.1", # 자연어 처리를 위한 파이썬 패키지
     "numpy>=2.3.1", # 수치 데이터를 다루는 파이썬 패키지
     "pandas>=2.3.1", # 파이썬 데이터 처리를 위한 라이브러리
