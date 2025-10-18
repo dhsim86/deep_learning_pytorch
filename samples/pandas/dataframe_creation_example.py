@@ -43,7 +43,7 @@ print("-" * 30)
 
 # 3. 외부 데이터 (csv, jsonl 등)로부터 DataFrame 생성
 # CSV 파일로부터 DataFrame 생성
-df = pd.read_csv("scripts/pandas/example.csv")  # CSV 파일 경로 지정
+df = pd.read_csv("samples/pandas/example.csv")  # CSV 파일 경로 지정
 print(df)
 print(df.index)  # 인덱스는 자동으로 부여됨 (0부터 시작)
 print(df.columns)  # 열 이름은 csv의 첫 번째 행으로부터 지정
