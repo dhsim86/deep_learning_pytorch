@@ -29,6 +29,8 @@ print("출력 크기:", y_train.shape) # (3, 1)
 ## requires_grad=True: 학습을 통해 계속 값이 변경되는 변수임을 의미
 ## - PyTorch의 연산 그래프안에서 "학습 가능한 변수"로 등록됨
 ## - W, b를 통해 어떤 계산을 하든 PyTorch는 연산을 모두 기록
+## - 선형 회귀나 신경망과 같은 곳에서 사용되는 모든 파라미터는 이 기능이 적용됨
+## - 이 것이 적용된 텐서에 연산을 하면 연산 그래프가 생성되고, backward 호출시 이 그래프로부터 자동으로 미분이 계산됨
 W = torch.zeros(1, requires_grad=True) 
 print("\n초기 가중치 W:", W)
 print("가중치 W 크기:", W.shape) # (1,)
