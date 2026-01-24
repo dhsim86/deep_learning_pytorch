@@ -51,12 +51,16 @@ log_softmax_result = F.log_softmax(z, dim=1)
 print("log_softmax 함수 결과:\n", log_softmax_result)
 
 ## F.log_softmax() + F.nll_loss() = F.cross_entropy()
+
+# (y_one_hot * - F.log_softmax(z, dim=1)).sum(dim=1).mean()와 같음
 cost = -(y_one_hot * torch.log(result)).sum(dim=1).mean()  # 크로스 엔트로피 비용함수 계산
 print("크로스 엔트로피 비용함수 결과:", cost.item())
 
 ### nill_loss() 함수 사용
 #### nill_loss는 Negative Log Likelihood Loss의 약자
 #### nill_loss를 활용하면 원핫벡터를 쓸 필요없이 바로 실제값을 사용 가능
+#### nill_loss는 원래 비용함수 수식에서 F.log_softmax를 뺀 나머지 수식을 자동으로 수행
+####   -> y를 원핫벡터로 변경, 샘플별 비용합, 각 샘플별 비용 평균 구하기 
 nll_loss_cost = F.nll_loss(F.log_softmax(z, dim=1), y)
 print("nll_loss 함수 사용 비용함수 결과:", nll_loss_cost.item())
 
