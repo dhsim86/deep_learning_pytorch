@@ -3,7 +3,7 @@ name = "deep-learning-pytorch"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 dependencies = [
     "konlpy>=0.6.0", # 한국어 자연어 처리를 위한 형태소 분석기 패키지
     "matplotlib>=3.10.3", #  데이터를 차트(chart)나 플롯(plot)으로 시각화하는 패키지
