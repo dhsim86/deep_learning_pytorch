@@ -53,6 +53,9 @@ print("----------------------------")
 print("학습")
 model = Word2Vec(sentences=result, vector_size=100, window=5, min_count=5, workers=4, sg=0)
 
+# (21613, 100): 21,613개의 단어가 있고, 각 단어는 100차원 밀집 임베딩으로 표현
+print(f"완성된 임베딩 매트릭스의 크기 확인: {model.wv.vectors.shape}")
+
 print("----------------------------")
 # 학습 후 입력 단어에 대해 가장 유사한 단어를 출력
 model_result = model.wv.most_similar("man")
