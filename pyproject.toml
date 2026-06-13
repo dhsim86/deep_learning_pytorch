@@ -17,6 +17,7 @@ dependencies = [
     "spacy>=3.8.14",
     "torch~=2.7.1",
     "torchvision>=0.22.1",
+    "tqdm>=4.67.1",
 ]
 
 # torch CUDA index
