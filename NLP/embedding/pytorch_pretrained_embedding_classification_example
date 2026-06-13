@@ -1,0 +1,161 @@
+import numpy as np
+from collections import Counter
+import gensim
+
+# 문장의 긍, 부정을 판단하는 감성 분류 모델 테스트
+## 문장과 레이블 데이터 준비
+sentences = [
+   'nice great best amazing',
+   'stop lies',
+   'pitiful nerd',
+   'excellent work',
+   'supreme quality',
+   'bad',
+   'highly respectable']
+y_train = [
+   1,
+   0,
+   0,
+   1,
+   1,
+   0,
+   1] # 긍정인 문장은 1, 부정이면 0
+
+# 단어 토큰화
+tokenized_sentences = [sent.split() for sent in sentences]
+print('단어 토큰화 된 결과 :', tokenized_sentences)
+
+# 단어 집합 생성
+word_list = []
+for sent in tokenized_sentences:
+    for word in sent:
+      word_list.append(word)
+
+word_counts = Counter(word_list)
+print(word_counts)
+print('총 단어수 :', len(word_counts)) # 단어의 등장 빈도수 기록
+
+# 등장 빈도순으로 정렬
+vocab = sorted(word_counts, key=word_counts.get, reverse=True)
+print(vocab)
+
+word_to_index = {}
+word_to_index['<PAD>'] = 0 # 패딩 토큰
+word_to_index['<UNK>'] = 1 # OOV 문제발생시 할당
+
+for index, word in enumerate(vocab) :
+  word_to_index[word] = index + 2
+
+vocab_size = len(word_to_index)
+print('패딩 토큰, UNK 토큰을 고려한 단어 집합의 크기 :', vocab_size)
+
+
+# 정수 인코딩
+def texts_to_sequences(tokenized_X_data, word_to_index):
+  encoded_X_data = []
+  for sent in tokenized_X_data:
+    index_sequences = []
+    for word in sent:
+      try:
+          index_sequences.append(word_to_index[word])
+      except KeyError:
+          index_sequences.append(word_to_index['<UNK>'])
+    encoded_X_data.append(index_sequences)
+  return encoded_X_data
+
+X_encoded = texts_to_sequences(tokenized_sentences, word_to_index)
+print(X_encoded)
+
+# 패딩
+max_len = max(len(l) for l in X_encoded)
+print('최대 길이 :',max_len)
+
+def pad_sequences(sentences, max_len):
+  features = np.zeros((len(sentences), max_len), dtype=int)
+  for index, sentence in enumerate(sentences):
+    if len(sentence) != 0:
+      features[index, :len(sentence)] = np.array(sentence)[:max_len]
+  return features
+
+X_train = pad_sequences(X_encoded, max_len=max_len)
+y_train = np.array(y_train)
+print('패딩 결과 :')
+print(X_train)
+
+# 구글의 사전 훈련된 Word2vec 모델을 로드
+## 각 임베딩 벡터의 차원은 300
+word2vec_model = gensim.models.KeyedVectors.load_word2vec_format('GoogleNews-vectors-negative300.bin.gz', binary=True) 
+
+## 풀기 위한 문제의 단어 집합 크기의 행과 300개 열을 가진 행렬 생성
+embedding_matrix = np.zeros((vocab_size, 300))
+print('임베딩 행렬의 크기 :', embedding_matrix.shape)
+
+# word2vec_model에서 특정 단어의 임베딩 벡터가 없다면 None을 리턴
+def get_vector(word):
+    if word in word2vec_model:
+        return word2vec_model[word]
+    else:
+        return None
+    
+# 임베딩 벡터값 저장
+## 단어 집합으로부터 각 단어로 word2vec_model에 임베딩 벡터값이 존재하는지 확인
+## 존재하면 임베딩 행렬에 각 해당 단어의 인덱스 위치의 행에 임베딩 벡터값 저장
+## <PAD>를 위한 0번과 <UNK>를 위한 1번은 실제 단어가 아니므로 맵핑에서 제외
+for word, i in word_to_index.items():
+    if i > 2:
+      temp = get_vector(word)
+      if temp is not None:
+          embedding_matrix[i] = temp
+
+# 모델 학습
+import torch
+import torch.nn as nn
+from torch.optim import Adam
+from torch.utils.data import DataLoader, TensorDataset
+
+class PretrainedEmbeddingModel(nn.Module):
+    def __init__(self, vocab_size, embedding_dim):
+        super(PretrainedEmbeddingModel, self).__init__()
+        self.embedding = nn.Embedding(vocab_size, embedding_dim)
+        self.embedding.weight = nn.Parameter(torch.tensor(embedding_matrix, dtype=torch.float32))
+        self.embedding.weight.requires_grad = True
+        self.flatten = nn.Flatten()
+        self.fc = nn.Linear(embedding_dim * max_len, 1)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        embedded = self.embedding(x)
+        flattened = self.flatten(embedded)
+        output = self.fc(flattened)
+        return self.sigmoid(output)
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+pretraiend_embedding_model = PretrainedEmbeddingModel(vocab_size, 300).to(device)
+
+## 긍정,부정을 분류하는 로지스틱 회귀 모델을 쓰므로, 손실 함수로 BCE 사용
+criterion = nn.BCELoss()
+optimizer = Adam(pretraiend_embedding_model.parameters())
+
+# 배치 크기가 2인 데이터로더로 변환
+train_dataset = TensorDataset(torch.tensor(X_train, dtype=torch.long), torch.tensor(y_train, dtype=torch.float32))
+train_dataloader = DataLoader(train_dataset, batch_size=2)
+
+
+for epoch in range(10):
+    for inputs, targets in train_dataloader:
+        # inputs.shape == (배치 크기, 문장 길이)
+        # targets.shape == (배치 크기)
+        inputs, targets = inputs.to(device), targets.to(device)
+
+        optimizer.zero_grad()
+
+        # outputs.shape == (배치 크기)
+        outputs = pretraiend_embedding_model(inputs).view(-1) 
+
+        loss = criterion(outputs, targets)
+        loss.backward()
+
+        optimizer.step()
+
+    print(f"Epoch {epoch+1}, Loss: {loss.item()}")
