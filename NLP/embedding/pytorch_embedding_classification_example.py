@@ -123,8 +123,11 @@ optimizer = Adam(simple_model.parameters())
 train_dataset = TensorDataset(torch.tensor(X_train, dtype=torch.long), torch.tensor(y_train, dtype=torch.float32))
 train_dataloader = DataLoader(train_dataset, batch_size=2)
 
+# 학습 전 임베딩 출력
+print(simple_model.embedding(torch.tensor(X_train, dtype=torch.long).to(device)))
+
 # 학습
-for epoch in range(10):
+for epoch in range(500):
     for inputs, targets in train_dataloader:
         # inputs.shape == (배치 크기, 문장 길이)
         # targets.shape == (배치 크기)
@@ -141,3 +144,6 @@ for epoch in range(10):
         optimizer.step()
 
     print(f"Epoch {epoch+1}, Loss: {loss.item()}")
+
+# 학습 후 임베딩 출력 (학습이 됨)
+print(simple_model.embedding(torch.tensor(X_train, dtype=torch.long).to(device)))
