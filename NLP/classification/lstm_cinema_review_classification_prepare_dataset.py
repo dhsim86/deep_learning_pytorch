@@ -127,6 +127,7 @@ for sentence in tqdm(train_data['document']):
     X_train.append(stopwords_removed_sentence)
 
 ### 샘플 확인
+### [['아', '더빙', '진짜', '짜증나네요', '목소리'], ['흠', '포스터', '보고', '초딩', '영화', '줄', '오버', '연기', '조차', '가볍지', '않구나'], ['너', '무재', '밓었', '다그', '래서', '보는것을', '추천']]
 print(X_train[:3])
 
 ### 테스트 데이터셋의 리뷰 텍스트를 토큰화 및 불용어 제거
@@ -147,6 +148,15 @@ y_test = np.array(test_data['label'])
 ### stratify으로 y_train을 지정하여 정답 레이블의 균형을 고려하면서 분할
 X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=0.2, random_state=0, stratify=y_train)
 
+# --------학습 데이터의 비율-----------
+# 부정 리뷰 = 50.238%
+# 긍정 리뷰 = 49.762%
+# --------검증 데이터의 비율-----------
+# 부정 리뷰 = 50.239%
+# 긍정 리뷰 = 49.761%
+# --------테스트 데이터의 비율-----------
+# 부정 리뷰 = 49.808%
+# 긍정 리뷰 = 50.192%
 print('--------학습 데이터의 비율-----------')
 print(f'부정 리뷰 = {round(np.sum(y_train==0)/len(y_train) * 100,3)}%')
 print(f'긍정 리뷰 = {round(np.count_nonzero(y_train)/len(y_train) * 100,3)}%')
