@@ -277,6 +277,7 @@ def evaluate(model, valid_dataloader, criterion, device):
     # 모델을 평가 모드로 설정 (반드시 사용해야 함)
     ## 모델 내부의 모든 레이어에 대해 평가 모드 활성화
     ## 드롭아웃이나 배치 정규화는 학습과 평가시 다르게 동작
+    ## -> 평가시에는 드롭아웃 기능이 비활성화됨
     model.eval()
 
     # 파이토치의 autograd, 자동 미분 엔진에서 기울기 계산을 비활성화
@@ -377,3 +378,73 @@ for epoch in range(num_epochs):
 # Epoch 5/5:
 # Train Loss: 0.1431, Train Accuracy: 0.9454
 # Validation Loss: 0.4512, Validation Accuracy: 0.8375
+
+############################################################################
+# 모델 평가
+
+## 모델 로드
+model.load_state_dict(torch.load('best_model_checkpoint.pth'))
+
+## 모델을 device로 이동
+model.to(device)
+
+## 검증 데이터에 대한 정확도와 손실 계산
+val_loss, val_accuracy = evaluate(model, valid_dataloader, criterion, device)
+
+print(f'Best model validation loss: {val_loss:.4f}')
+print(f'Best model validation accuracy: {val_accuracy:.4f}')
+
+## 테스트 데이터에 대한 정확도와 손실 계산
+test_loss, test_accuracy = evaluate(model, test_dataloader, criterion, device)
+
+print(f'Best model test loss: {test_loss:.4f}')
+print(f'Best model test accuracy: {test_accuracy:.4f}')
+
+############################################################################
+# 모델 직접 테스트
+from konlpy.tag import Okt
+okt = Okt()
+stopwords = ['도', '는', '다', '의', '가', '이', '은', '한', '에', '하', '고', '을', '를', '인', '듯', '과', '와', '네', '들', '듯', '지', '임', '게']
+
+index_to_tag = {0 : '부정', 1 : '긍정'}
+
+## 임의의 입력에 대해 모델 예측하는 함수 정의
+def predict(text, model, word_to_index, index_to_tag):
+    # 평가 모드로 전환
+    model.eval()
+
+    # 입력 텍스트 토큰화
+    tokens = okt.morphs(text) # 토큰화
+    tokens = [word for word in tokens if not word in stopwords] # 불용어 제거
+    # 정수 인코딩, 사전에 없는 단어는 UNK로 부여
+    token_indices = [word_to_index.get(token, 1) for token in tokens]
+
+    # 정수 인코딩 후 텐서로 변환
+    input_tensor = torch.tensor([token_indices], dtype=torch.long).to(device)  # (1, seq_length)
+
+    # 인퍼런스
+    with torch.no_grad():
+        logits = model(input_tensor)  # (1, output_dim)
+
+    # 예측한 분류 클래스 확인
+    predicted_index = torch.argmax(logits, dim=1)
+    predicted_tag = index_to_tag[predicted_index.item()]
+
+    return predicted_tag
+
+
+## 임의의 텍스트로 예측
+test_input = "이 영화 개꿀잼 ㅋㅋㅋ"
+print(predict(test_input, model, word_to_index, index_to_tag))
+
+test_input = "이딴게 영화냐 ㅉㅉ"
+print(predict(test_input, model, word_to_index, index_to_tag))
+
+test_input = "감독 뭐하는 놈이냐?"
+print(predict(test_input, model, word_to_index, index_to_tag))
+
+test_input = "와 개쩐다 정말 세계관 최강자들의 영화다"
+print(predict(test_input, model, word_to_index, index_to_tag))
+
+test_input = "감독 누구냐? 뭐 이따위 만듬?"
+print(predict(test_input, model, word_to_index, index_to_tag))
