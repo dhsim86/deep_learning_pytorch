@@ -2,13 +2,9 @@
 import pickle
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import re
 import urllib.request
-from konlpy.tag import Mecab
 from tqdm import tqdm
 from sklearn.model_selection import train_test_split
-from collections import Counter
 
 # 영화 리뷰 데이터 로드
 ## 학습 및 테스트용 데이터셋 사용
