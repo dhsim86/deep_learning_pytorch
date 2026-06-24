@@ -1,9 +1,4 @@
 {
-  "github.copilot.chat.commitMessageGeneration.instructions": [
-    {
-      "file": ".github/git-commit-instructions.md"
-    }
-  ],
   "python.testing.pytestArgs": ["tests"],
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,
@@ -18,6 +13,5 @@
   "terminal.integrated.env.windows": {
     "PYTHONPATH": "${workspaceFolder}",
     "python.envFile": "${workspaceFolder}/.env"
-  },
-  "claudeCode.disableLoginPrompt": true
+  }
 }
