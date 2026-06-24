@@ -2,7 +2,11 @@ import torch
 import torch.nn as nn
 
 # GPU 연산 사용 설정
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = (
+    "cuda" if torch.cuda.is_available()
+    else "mps" if torch.backends.mps.is_available()
+    else "cpu"
+)
 torch.manual_seed(777)
 if device == "cuda":
     torch.cuda.manual_seed_all(777)

@@ -181,8 +181,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 USE_CUDA = torch.cuda.is_available()
-device = torch.device("cuda" if USE_CUDA else "cpu")
-print("cpu와 cuda 중 다음 기기로 학습함:", device)
+device = torch.device(
+    "cuda" if USE_CUDA
+    else "mps" if torch.backends.mps.is_available()
+    else "cpu"
+)
+print("cuda/mps/cpu 중 다음 기기로 학습함:", device)
 
 ## LSTM 모델 구현
 

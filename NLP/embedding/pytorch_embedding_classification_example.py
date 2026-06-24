@@ -109,7 +109,11 @@ class SimpleModel(nn.Module):
         return self.sigmoid(output)
 
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device(
+    'cuda' if torch.cuda.is_available()
+    else 'mps' if torch.backends.mps.is_available()
+    else 'cpu'
+)
 
 ## 임베딩 벡터의 크기는 100으로 지정
 embedding_dim = 100
