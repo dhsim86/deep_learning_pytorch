@@ -20,5 +20,5 @@ outputs, _status = cell(inputs)
 ### 10번의 시점동안 8차원의 은닉 상태가 출력됨
 print(outputs.shape) # torch.Size([1, 10, 8])
 
-### 최종 time-step의 hidden_state
+### 최종 time-step의 hidden_state (층의 갯수, 배치 크기, 은닉 상태 크기)
 print(_status.shape) # torch.Size([1, 1, 8])
