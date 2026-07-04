@@ -13,6 +13,7 @@ print("softmax 함수 결과의 합:", result.sum().item())  # 합은 1이어야
 
 ##################
 # 비용함수 테스트
+print("=============================================")
 
 ## 데이터 준비 (레이블이 5개인 경우, 가중치 통과, 소프트맥스 입력 직전 단계)
 z = torch.rand(3, 5, requires_grad=True)  # (3, 5) 크기의 랜덤 텐서 생성
@@ -42,18 +43,20 @@ print("=============================================")
 # torch 함수 사용
 ## F.softmax() + torch.log() = F.log_softmax()
 z = torch.rand(3, 5, requires_grad=True)
+print("y: \n", y)
+print("z: \n", z)
 
 softmax_result = F.softmax(z, dim=1)
 print("softmax 함수 결과:\n", softmax_result)
-print("softmax 함수 결과의 로그:\n", torch.log(softmax_result))
+print("softmax 함수 결과에 대해 로그를 취한 값:\n", torch.log(softmax_result))
 
 log_softmax_result = F.log_softmax(z, dim=1)
 print("log_softmax 함수 결과:\n", log_softmax_result)
 
 ## F.log_softmax() + F.nll_loss() = F.cross_entropy()
 
-# (y_one_hot * - F.log_softmax(z, dim=1)).sum(dim=1).mean()와 같음
-cost = -(y_one_hot * torch.log(result)).sum(dim=1).mean()  # 크로스 엔트로피 비용함수 계산
+# - (y_one_hot * F.log_softmax(z, dim=1)).sum(dim=1).mean()와 같음
+cost = -(y_one_hot * torch.log(softmax_result)).sum(dim=1).mean()  # 크로스 엔트로피 비용함수 계산
 print("크로스 엔트로피 비용함수 결과:", cost.item())
 
 ### nil_loss() 함수 사용
