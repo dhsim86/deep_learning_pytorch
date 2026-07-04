@@ -213,7 +213,7 @@ class TextClassifier(nn.Module):
         embedded = self.embedding(x)  # (batch_size, seq_length, embedding_dim)
 
         # LSTM은 (hidden state, cell state)의 튜플을 반환합니다
-        lstm_out, (hidden, cell) = self.lstm(embedded)  # lstm_out: (batch_size, seq_length, hidden_dim), hidden: (1, batch_size, hidden_dim)
+        lstm_out, (hidden, cell) = self.lstm(embedded)  # lstm_out: (batch_size, seq_length, hidden_dim), hidden: (층의 갯수(1), batch_size, hidden_dim)
 
         last_hidden = hidden.squeeze(0)  # (batch_size, hidden_dim)
         logits = self.fc(last_hidden)  # (batch_size, output_dim)
