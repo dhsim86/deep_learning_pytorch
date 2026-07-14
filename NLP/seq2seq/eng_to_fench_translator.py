@@ -230,3 +230,6 @@ print('훈련 target 레이블의 크기 :',decoder_target_train.shape)
 print('테스트 source 데이터의 크기 :',encoder_input_test.shape)
 print('테스트 target 데이터의 크기 :',decoder_input_test.shape)
 print('테스트 target 레이블의 크기 :',decoder_target_test.shape)
+
+############################################################
+# 기계 번역기 모델 정의
