@@ -91,3 +91,142 @@ sents_en_in, sents_fra_in, sents_fra_out = load_preprocessed_data()
 print('인코더의 입력 :',sents_en_in[:5])
 print('디코더의 입력 :',sents_fra_in[:5])
 print('디코더의 레이블 :',sents_fra_out[:5])
+
+############################################################
+# 단어 집합 생성
+
+## 단어 집합 생성 함수
+## PAD -> 0 / UNK -> 1
+## 입력된 데이터로부터 빈도 순으로 단어를 정렬 후 정수를 할당
+def build_vocab(sents):
+  word_list = []
+
+  for sent in sents:
+      for word in sent:
+        word_list.append(word)
+
+  # 각 단어별 등장 빈도를 계산하여 등장 빈도가 높은 순서로 정렬
+  word_counts = Counter(word_list)
+  vocab = sorted(word_counts, key=word_counts.get, reverse=True)
+
+  word_to_index = {}
+  word_to_index['<PAD>'] = 0
+  word_to_index['<UNK>'] = 1
+
+  # 등장 빈도가 높은 단어일수록 낮은 정수를 부여
+  for index, word in enumerate(vocab) :
+    word_to_index[word] = index + 2
+
+  return word_to_index
+
+## 영어 및 프랑스어를 위한 단어 집합 생성
+src_vocab = build_vocab(sents_en_in)
+tar_vocab = build_vocab(sents_fra_in + sents_fra_out)
+
+src_vocab_size = len(src_vocab)
+tar_vocab_size = len(tar_vocab)
+## 영어 단어 집합의 크기 : 4520, 프랑스어 단어 집합의 크기 : 7913
+print("영어 단어 집합의 크기 : {:d}, 프랑스어 단어 집합의 크기 : {:d}".format(src_vocab_size, tar_vocab_size))
+
+## 정수에서 단어를 얻는 딕셔너리 생성 (훈련 후 예측값/실제값 비교하는 단계에서 사용)
+index_to_src = {v: k for k, v in src_vocab.items()}
+index_to_tar = {v: k for k, v in tar_vocab.items()}
+
+############################################################
+# 데이터로부터 정수 인코딩
+def texts_to_sequences(sents, word_to_index):
+  encoded_X_data = []
+  for sent in tqdm(sents):
+    index_sequences = []
+    for word in sent:
+      try:
+          index_sequences.append(word_to_index[word])
+      except KeyError:
+          index_sequences.append(word_to_index['<UNK>'])
+    encoded_X_data.append(index_sequences)
+  return encoded_X_data
+
+encoder_input = texts_to_sequences(sents_en_in, src_vocab)
+decoder_input = texts_to_sequences(sents_fra_in, tar_vocab)
+decoder_target = texts_to_sequences(sents_fra_out, tar_vocab)
+
+## 상위 5개의 샘플에 대해서 정수 인코딩 전, 후 문장 출력
+## 인코더 입력이므로 <sos>나 <eos>가 없음
+for i, (item1, item2) in zip(range(5), zip(sents_en_in, encoder_input)):
+    # Index: 0, 정수 인코딩 전: ['go', '.'], 정수 인코딩 후: [27, 2]
+    # Index: 1, 정수 인코딩 전: ['go', '.'], 정수 인코딩 후: [27, 2]
+    # Index: 2, 정수 인코딩 전: ['go', '.'], 정수 인코딩 후: [27, 2]
+    # Index: 3, 정수 인코딩 전: ['go', '.'], 정수 인코딩 후: [27, 2]
+    # Index: 4, 정수 인코딩 전: ['hi', '.'], 정수 인코딩 후: [696, 2]
+    print(f"Index: {i}, 정수 인코딩 전: {item1}, 정수 인코딩 후: {item2}")
+
+############################################################
+# 패딩
+def pad_sequences(sentences, max_len=None):
+    # 최대 길이 값이 주어지지 않을 경우 데이터 내 최대 길이로 패딩
+    if max_len is None:
+        max_len = max([len(sentence) for sentence in sentences])
+
+    features = np.zeros((len(sentences), max_len), dtype=int)
+    for index, sentence in enumerate(sentences):
+        if len(sentence) != 0:
+            features[index, :len(sentence)] = np.array(sentence)[:max_len]
+    return features
+
+encoder_input = pad_sequences(encoder_input)
+decoder_input = pad_sequences(decoder_input)
+decoder_target = pad_sequences(decoder_target)
+
+# 인코더의 입력의 크기(shape) : (33000, 7)
+# 디코더의 입력의 크기(shape) : (33000, 16)
+# 디코더의 레이블의 크기(shape) : (33000, 16)
+print('인코더의 입력의 크기(shape) :',encoder_input.shape)
+print('디코더의 입력의 크기(shape) :',decoder_input.shape)
+print('디코더의 레이블의 크기(shape) :',decoder_target.shape)
+
+############################################################
+# 학습을 위한 데이터셋 준비
+
+# 데이터 셔플
+## 랜덤한 인덱스 생성
+indices = np.arange(encoder_input.shape[0])
+np.random.shuffle(indices)
+print('랜덤 시퀀스 :',indices)
+
+## 랜덤 인덱스로 랜덤으로 섞인 데이터 샘플을 얻는다.
+encoder_input = encoder_input[indices]
+decoder_input = decoder_input[indices]
+decoder_target = decoder_target[indices]
+
+## 임의 샘플 출력, decoder_input과 decoder_target는 <sos> / <eos> 제외하고 동일한 시퀀스여야 함
+## ['i', 'm', 'not', 'in', '.', '<PAD>', '<PAD>']
+## ['<sos>', 'je', 'passe', '.', '<PAD>', '<PAD>', '<PAD>', '<PAD>', '<PAD>', '<PAD>', '<PAD>', '<PAD>', '<PAD>', '<PAD>', '<PAD>', '<PAD>']
+## ['je', 'passe', '.', '<eos>', '<PAD>', '<PAD>', '<PAD>', '<PAD>', '<PAD>', '<PAD>', '<PAD>', '<PAD>', '<PAD>', '<PAD>', '<PAD>', '<PAD>']
+print([index_to_src[word] for word in encoder_input[30997]])
+print([index_to_tar[word] for word in decoder_input[30997]])
+print([index_to_tar[word] for word in decoder_target[30997]])
+
+# 테스트 데이터셋 분리 (10% 사용)
+n_of_val = int(33000*0.1)
+print('검증 데이터의 개수 :',n_of_val) # 검증 데이터의 개수 : 3300
+
+encoder_input_train = encoder_input[:-n_of_val]
+decoder_input_train = decoder_input[:-n_of_val]
+decoder_target_train = decoder_target[:-n_of_val]
+
+encoder_input_test = encoder_input[-n_of_val:]
+decoder_input_test = decoder_input[-n_of_val:]
+decoder_target_test = decoder_target[-n_of_val:]
+
+## 훈련 source 데이터의 크기 : (29700, 7)
+## 훈련 target 데이터의 크기 : (29700, 16)
+## 훈련 target 레이블의 크기 : (29700, 16)
+## 테스트 source 데이터의 크기 : (3300, 7)
+## 테스트 target 데이터의 크기 : (3300, 16)
+## 테스트 target 레이블의 크기 : (3300, 16)
+print('훈련 source 데이터의 크기 :',encoder_input_train.shape)
+print('훈련 target 데이터의 크기 :',decoder_input_train.shape)
+print('훈련 target 레이블의 크기 :',decoder_target_train.shape)
+print('테스트 source 데이터의 크기 :',encoder_input_test.shape)
+print('테스트 target 데이터의 크기 :',decoder_input_test.shape)
+print('테스트 target 레이블의 크기 :',decoder_target_test.shape)
