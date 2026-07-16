@@ -233,3 +233,67 @@ print('테스트 target 레이블의 크기 :',decoder_target_test.shape)
 
 ############################################################
 # 기계 번역기 모델 정의
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+embedding_dim = 256
+hidden_dim = 256
+
+class Encoder(nn.Module):
+    def __init__(self, src_vocab_size, embedding_dim, hidden_dim):
+        super(Encoder, self).__init__()
+        self.embedding = nn.Embedding(src_vocab_size, embedding_dim, padding_idx=0)
+        self.lstm = nn.LSTM(embedding_dim, hidden_dim, batch_first=True)
+
+    def forward(self, x):
+        # x.shape == (batch_size, seq_len, embedding_dim)
+        x = self.embedding(x)
+        # hidden.shape == (1, batch_size, hidden_dim), cell.shape == (1, batch_size, hidden_dim)
+        _, (hidden, cell) = self.lstm(x)
+        # 인코더의 출력은 hidden state, cell state
+        return hidden, cell
+
+class Decoder(nn.Module):
+    def __init__(self, tar_vocab_size, embedding_dim, hidden_dim):
+        super(Decoder, self).__init__()
+        self.embedding = nn.Embedding(tar_vocab_size, embedding_dim, padding_idx=0)
+        self.lstm = nn.LSTM(embedding_dim, hidden_dim, batch_first=True)
+        self.fc = nn.Linear(hidden_dim, tar_vocab_size)
+
+    def forward(self, x, hidden, cell):
+
+        # x.shape == (batch_size, seq_len, embedding_dim)
+        x = self.embedding(x)
+
+        # 디코더의 LSTM으로 인코더의 hidden state, cell state를 전달.
+        # output.shape == (batch_size, seq_len, hidden_dim)
+        # hidden.shape == (1, batch_size, hidden_dim)
+        # cell.shape == (1, batch_size, hidden_dim)
+        output, (hidden, cell) = self.lstm(x, (hidden, cell))
+
+        # output.shape: (batch_size, seq_len, tar_vocab_size)
+        output = self.fc(output)
+
+        # 디코더의 출력은 예측값, hidden state, cell state
+        return output, hidden, cell
+
+class Seq2Seq(nn.Module):
+    def __init__(self, encoder, decoder):
+        super(Seq2Seq, self).__init__()
+        self.encoder = encoder
+        self.decoder = decoder
+
+    def forward(self, src, trg):
+        hidden, cell = self.encoder(src)
+
+        # 훈련 중에는 디코더의 출력 중 오직 output만 사용한다.
+        output, _, _ = self.decoder(trg, hidden, cell)
+        return output
+
+encoder = Encoder(src_vocab_size, embedding_dim, hidden_dim)
+decoder = Decoder(tar_vocab_size, embedding_dim, hidden_dim)
+model = Seq2Seq(encoder, decoder)
+
+loss_function = nn.CrossEntropyLoss(ignore_index=0)
+optimizer = optim.Adam(model.parameters())
