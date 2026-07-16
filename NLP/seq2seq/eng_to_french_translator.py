@@ -249,9 +249,24 @@ class Encoder(nn.Module):
     def forward(self, x):
         # x.shape == (batch_size, seq_len, embedding_dim)
         x = self.embedding(x)
+        
         # hidden.shape == (1, batch_size, hidden_dim), cell.shape == (1, batch_size, hidden_dim)
         _, (hidden, cell) = self.lstm(x)
+        
         # 인코더의 출력은 hidden state, cell state
+        # 참고
+        #   lstm_out, (hidden, cell) = self.lstm(embedded)
+        #   lstm_out: 모든 시점의 마지막 층 은닉 상태를 모아놓은 텐서 (batch_size, seq_length, hidden_dim)
+        #     - 즉 문장의 각 토큰 위치마다 하나씩 은닉 상태가 들어 있다. seq_length개의 은닉 상태가 순서대로 쌓여 있다.
+        #   hidden: 가장 마지막 시점의 은닉 상태만 담는 텐서 (num_layers(층 갯수) * num_directions(단방향 or 양방향), batch_size, hidden_dim)
+        #     - 첫 번째 차원은 LSTM의 은닉층 갯수, 단방향/양방향 여부에 따라 다르다.
+        #     - lstm_out[:, -1, :] == hidden.squeeze(0): lstm_out의 마지막 시점의 슬라이스와 같은 값
+        #   cell: 가장 마지막 시점의 셀 상태 (num_layers(층 갯수) * num_directions(단방향 or 양방향), batch_size, hidden_dim)
+        #     - 셀 상태는 LSTM 내부의 장기 기억을 담는 통로이며, 다음 예측을 위해 넘겨줄 때 사용.
+        #     - LSTM 내부 게이트를 통해 일부만 지우고 일부만 더하는 식으로 조금씩 갱신. 장기 의존성을 위해 존재
+        # c_t = (망각게이트 ⊙ c_{t-1})  +  (입력게이트 ⊙ 새 후보값)   # 셀 상태 갱신
+        # h_t = 출력게이트 ⊙ tanh(c_t)                                # 셀에서 걸러낸 출력
+
         return hidden, cell
 
 class Decoder(nn.Module):
