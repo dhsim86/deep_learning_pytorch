@@ -43,7 +43,7 @@ def preprocess_sentence(sent):
 def load_preprocessed_data():
   encoder_input, decoder_input, decoder_target = [], [], []
 
-  with open("fra.txt", "r") as lines:
+  with open("fra.txt", "r", encoding="utf-8") as lines:
     for i, line in enumerate(lines):
       
       # 영어 및 프랑스어 문장 로드 (source 데이터와 target 데이터 분리)
