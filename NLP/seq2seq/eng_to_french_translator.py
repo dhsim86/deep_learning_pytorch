@@ -270,8 +270,6 @@ class Encoder(nn.Module):
         # c_t = (망각게이트 ⊙ c_{t-1})  +  (입력게이트 ⊙ 새 후보값)   # 셀 상태 갱신
         # h_t = 출력게이트 ⊙ tanh(c_t)                                # 셀에서 걸러낸 출력
 
-
-
         return hidden, cell
 
 class Decoder(nn.Module):
