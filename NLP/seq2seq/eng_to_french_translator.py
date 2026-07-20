@@ -313,6 +313,10 @@ encoder = Encoder(src_vocab_size, embedding_dim, hidden_dim)
 decoder = Decoder(tar_vocab_size, embedding_dim, hidden_dim)
 model = Seq2Seq(encoder, decoder)
 
+# 다중 클래스 분류 문제이므로 CrossEntropyLoss 사용
+# -> 매 시점마다 프랑스어 단어 집합의 크기(tar_vocab_size)의 선택지에서
+#    단어를 1개 선택하여 이를 이번 시점에서 예측한 단어로 택한다.
+# ignore_index=0으로 패딩 토큰 인덱스는 무시하도록 설정
 loss_function = nn.CrossEntropyLoss(ignore_index=0)
 optimizer = optim.Adam(model.parameters())
 

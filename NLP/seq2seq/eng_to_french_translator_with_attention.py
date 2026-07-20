@@ -238,7 +238,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 embedding_dim = 256
-hidden_units = 256
+hidden_dim = 256
 
 # 인코더, 구조는 기존 seq2seq 모델과 동일
 class Encoder(nn.Module):
@@ -268,7 +268,7 @@ class Decoder(nn.Module):
 
         # (embedding_dim + hidden_dim) -> 어텐션 스코어와 입력 임베딩을 concat해서 받는다.
         self.lstm = nn.LSTM(embedding_dim + hidden_dim, hidden_dim, batch_first=True)
-        
+
         self.fc = nn.Linear(hidden_dim, tar_vocab_size)
         self.softmax = nn.Softmax(dim=1)
 
@@ -318,3 +318,28 @@ class Decoder(nn.Module):
         output = self.fc(output)
 
         return output, hidden, cell
+    
+class Seq2Seq(nn.Module):
+    def __init__(self, encoder, decoder):
+        super(Seq2Seq, self).__init__()
+        self.encoder = encoder
+        self.decoder = decoder
+
+    def forward(self, src, trg):
+        # encoder_outputs: key, value인 전 시점의 인코더 은닉 상태를 활용
+        encoder_outputs, hidden, cell = self.encoder(src)
+
+        # 어텐션 계산을 위해 encoder_ouputs도 넘긴다.
+        output, _, _ = self.decoder(trg, encoder_outputs, hidden, cell)
+        return output
+
+encoder = Encoder(src_vocab_size, embedding_dim, hidden_dim)
+decoder = Decoder(tar_vocab_size, embedding_dim, hidden_dim)
+model = Seq2Seq(encoder, decoder)
+
+# 다중 클래스 분류 문제이므로 CrossEntropyLoss 사용
+# -> 매 시점마다 프랑스어 단어 집합의 크기(tar_vocab_size)의 선택지에서
+#    단어를 1개 선택하여 이를 이번 시점에서 예측한 단어로 택한다.
+# ignore_index=0으로 패딩 토큰 인덱스는 무시하도록 설정
+loss_function = nn.CrossEntropyLoss(ignore_index=0)
+optimizer = optim.Adam(model.parameters())
