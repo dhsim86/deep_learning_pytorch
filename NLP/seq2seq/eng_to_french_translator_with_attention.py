@@ -256,7 +256,8 @@ class Encoder(nn.Module):
         # cell.shape == (1, batch_size, hidden_dim)
         outputs, (hidden, cell) = self.lstm(x)
 
-        return outputs, hidden, cell # 어텐션 계산을 위해 outputs도 사용
+        # 어텐션 계산을 위해 key, value에 해당하는 outputs(모든 시점의 인코더 셀의 은닉 상태)를 활용
+        return outputs, hidden, cell 
     
 
 # 디코더, 기존 seq2seq와 구조가 다르다.
@@ -264,35 +265,53 @@ class Decoder(nn.Module):
     def __init__(self, tar_vocab_size, embedding_dim, hidden_dim):
         super(Decoder, self).__init__()
         self.embedding = nn.Embedding(tar_vocab_size, embedding_dim, padding_idx=0)
+
+        # (embedding_dim + hidden_dim) -> 어텐션 스코어와 입력 임베딩을 concat해서 받는다.
         self.lstm = nn.LSTM(embedding_dim + hidden_dim, hidden_dim, batch_first=True)
+        
         self.fc = nn.Linear(hidden_dim, tar_vocab_size)
         self.softmax = nn.Softmax(dim=1)
 
+    # 바다나우 어텐션와 비슷하게 구현 (완전 같지 않음)
     def forward(self, x, encoder_outputs, hidden, cell):
         x = self.embedding(x)
 
-        # Dot product attention
-        # attention_scores.shape: (batch_size, source_seq_len, 1)
+        # Dot product attention 진행 (어텐션 스코어 계산)
+        # -> 바나다우에서는 디코더 t-1 시점 은닉 상태와 인코더 은닉 상태를 위한 별도의 가중치와 활성화함수(tanh)으로 계산하는 것이 있지만, 여기서는 쓰지 않음
+        # -> 디코더 t-1 시점 은닉 상태(query)와 인코더 은닉 상태(key)를 내적
+        # 차원 계산
+        #   - hidden (1, batch_size, hidden_dim)
+        #.    -> (batch_size, 1, hidden_dim) -> (batch_size, hidden_dim, 1)
+        #   - 계산: (batch_size, source_seq_len, hidden_dim) x (batch_size, hidden_dim, 1)
+        #   - attention_scores.shape: (batch_size, source_seq_len, 1)
         attention_scores = torch.bmm(encoder_outputs, hidden.transpose(0, 1).transpose(1, 2))
 
-        # attention_weights.shape: (batch_size, source_seq_len, 1)
+        # softmax로 어텐션 가중치(분포)를 계산
+        # -> attention_weights.shape: (batch_size, source_seq_len, 1)
         attention_weights = self.softmax(attention_scores)
 
-        # context_vector.shape: (batch_size, 1, hidden_units)
+        # 어텐션 가중치로 인코더 은닉 상태(value)와 가중합 (벡터 내적으로 인해 자동 가중합)
+        # 차원 계산
+        #  - (batch_size, 1, source_seq_len) x (batch_size, source_seq_len, hidden_dim)
+        #    -> context_vector.shape: (batch_size, 1, hidden_dim)
         context_vector = torch.bmm(attention_weights.transpose(1, 2), encoder_outputs)
 
-        # Repeat context_vector to match seq_len
-        # context_vector_repeated.shape: (batch_size, target_seq_len, hidden_units)
+        # 원래 디코더의 매 시점마다 context vector를 계산해야 함
+        #   -> 디코더 t-1 시점의 은닉 상태와 인코더의 은닉 상태로 계속 계산해야되지만,
+        #      여기서는 그냥 같은 context vector를 매 시점마다 주입
+        # Repeat context_vector to match seq_len (매 시점마다 주입하기 위해 seq_len 만큼 repeat)
+        # context_vector_repeated.shape: (batch_size, target_seq_len, hidden_dim)
         seq_len = x.shape[1]
         context_vector_repeated = context_vector.repeat(1, seq_len, 1)
 
+        # 입력 임베딩과 컨텍스트 벡터를 concat
         # Concatenate context vector and embedded input
-        # x.shape: (batch_size, target_seq_len, embedding_dim + hidden_units)
+        # x.shape: (batch_size, target_seq_len, embedding_dim + hidden_dim)
         x = torch.cat((x, context_vector_repeated), dim=2)
 
-        # output.shape: (batch_size, target_seq_len, hidden_units)
-        # hidden.shape: (1, batch_size, hidden_units)
-        # cell.shape: (1, batch_size, hidden_units)
+        # output.shape: (batch_size, target_seq_len, hidden_dim)
+        # hidden.shape: (1, batch_size, hidden_dim)
+        # cell.shape: (1, batch_size, hidden_dim)
         output, (hidden, cell) = self.lstm(x, (hidden, cell))
 
         # output.shape: (batch_size, target_seq_len, tar_vocab_size)
