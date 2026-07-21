@@ -347,3 +347,205 @@ loss_function = nn.CrossEntropyLoss(ignore_index=0)
 optimizer = optim.Adam(model.parameters())
 
 print(model)
+
+# 평가 함수정의
+def evaluation(model, dataloader, loss_function, device):
+    model.eval()
+
+    total_loss = 0.0
+    total_correct = 0
+    total_count = 0
+
+    with torch.no_grad():
+        for encoder_inputs, decoder_inputs, decoder_targets in dataloader:
+            encoder_inputs = encoder_inputs.to(device)
+            decoder_inputs = decoder_inputs.to(device)
+            decoder_targets = decoder_targets.to(device)
+
+            # 순방향 전파
+            # outputs.shape == (batch_size, seq_len, tar_vocab_size)
+            outputs = model(encoder_inputs, decoder_inputs)
+
+            # 손실 계산
+            # outputs.view(-1, outputs.size(-1))의 shape는 (batch_size * seq_len, tar_vocab_size)
+            # decoder_targets.view(-1)의 shape는 (batch_size * seq_len)
+            loss = loss_function(outputs.view(-1, outputs.size(-1)), decoder_targets.view(-1))
+            total_loss += loss.item()
+
+            # 정확도 계산 (패딩 토큰 제외)
+            mask = decoder_targets != 0
+            total_correct += ((outputs.argmax(dim=-1) == decoder_targets) * mask).sum().item()
+            total_count += mask.sum().item()
+
+    return total_loss / len(dataloader), total_correct / total_count
+
+# 데이터셋을 torch 텐서로 변환
+encoder_input_train_tensor = torch.tensor(encoder_input_train, dtype=torch.long)
+decoder_input_train_tensor = torch.tensor(decoder_input_train, dtype=torch.long)
+decoder_target_train_tensor = torch.tensor(decoder_target_train, dtype=torch.long)
+
+encoder_input_test_tensor = torch.tensor(encoder_input_test, dtype=torch.long)
+decoder_input_test_tensor = torch.tensor(decoder_input_test, dtype=torch.long)
+decoder_target_test_tensor = torch.tensor(decoder_target_test, dtype=torch.long)
+
+# 데이터셋 및 데이터로더 생성
+batch_size = 128
+
+### 학습 데이터로더는 shuffle=True로 설정하여 데이터를 에포크마다 랜덤하게 섞어준다.
+train_dataset = TensorDataset(encoder_input_train_tensor, decoder_input_train_tensor, decoder_target_train_tensor)
+train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+
+### 테스트 데이터셋 로더는 shuffle=False로 설정하여 데이터의 순서를 유지
+valid_dataset = TensorDataset(encoder_input_test_tensor, decoder_input_test_tensor, decoder_target_test_tensor)
+valid_dataloader = DataLoader(valid_dataset, batch_size=batch_size, shuffle=False)
+
+# 훈련
+USE_CUDA = torch.cuda.is_available()
+device = torch.device(
+    "cuda" if USE_CUDA
+    else "mps" if torch.backends.mps.is_available()
+    else "cpu"
+)
+print("cuda/mps/cpu 중 다음 기기로 학습함:", device)
+
+model.to(device)
+
+# 학습 설정
+num_epochs = 30
+
+# Training loop
+best_val_loss = float('inf')
+
+for epoch in range(num_epochs):
+    # 훈련 모드
+    model.train()
+
+    for encoder_inputs, decoder_inputs, decoder_targets in train_dataloader:
+        encoder_inputs = encoder_inputs.to(device)
+        decoder_inputs = decoder_inputs.to(device)
+        decoder_targets = decoder_targets.to(device)
+
+        # 기울기 초기화
+        optimizer.zero_grad()
+
+        # 순방향 전파
+        # outputs.shape == (batch_size, seq_len, tar_vocab_size)
+        outputs = model(encoder_inputs, decoder_inputs)
+
+        # 손실 계산 및 역방향 전파
+        # outputs.view(-1, outputs.size(-1))의 shape는 (batch_size * seq_len, tar_vocab_size)
+        # decoder_targets.view(-1)의 shape는 (batch_size * seq_len)
+        loss = loss_function(outputs.view(-1, outputs.size(-1)), decoder_targets.view(-1))
+        loss.backward()
+
+        # 가중치 업데이트
+        optimizer.step()
+
+    train_loss, train_acc = evaluation(model, train_dataloader, loss_function, device)
+    valid_loss, valid_acc = evaluation(model, valid_dataloader, loss_function, device)
+
+    print(f'Epoch: {epoch+1}/{num_epochs} | Train Loss: {train_loss:.4f} | Train Acc: {train_acc:.4f} | Valid Loss: {valid_loss:.4f} | Valid Acc: {valid_acc:.4f}')
+
+    # 검증 손실이 최소일 때 체크포인트 저장
+    if valid_loss < best_val_loss:
+        print(f'Validation loss improved from {best_val_loss:.4f} to {valid_loss:.4f}. 체크포인트를 저장합니다.')
+        best_val_loss = valid_loss
+        torch.save(model.state_dict(), 'best_model_checkpoint.pth')
+
+# 모델 로드
+model.load_state_dict(torch.load('best_model_checkpoint.pth'))
+
+# 모델을 device에 올립니다.
+model.to(device)
+
+# 검증 데이터에 대한 정확도와 손실 계산
+val_loss, val_accuracy = evaluation(model, valid_dataloader, loss_function, device)
+
+print(f'Best model validation loss: {val_loss:.4f}')
+print(f'Best model validation accuracy: {val_accuracy:.4f}')
+
+print(tar_vocab['<sos>'])
+print(tar_vocab['<eos>'])
+
+# 추론 단계, 기계 번역기로 동작시키기
+
+## 정수에서 단어를 얻는 딕셔너리 생성 (훈련 후 예측값/실제값 비교하는 단계에서 사용)
+index_to_src = {v: k for k, v in src_vocab.items()}
+index_to_tar = {v: k for k, v in tar_vocab.items()}
+
+# 원문의 정수 시퀀스를 텍스트 시퀀스로 변환
+def seq_to_src(input_seq):
+  sentence = ''
+  for encoded_word in input_seq:
+    if(encoded_word != 0):
+      sentence = sentence + index_to_src[encoded_word] + ' '
+  return sentence
+
+# 번역문의 정수 시퀀스를 텍스트 시퀀스로 변환
+def seq_to_tar(input_seq):
+  sentence = ''
+  for encoded_word in input_seq:
+    if(encoded_word != 0 and encoded_word != tar_vocab['<sos>'] and encoded_word != tar_vocab['<eos>']):
+      sentence = sentence + index_to_tar[encoded_word] + ' '
+  return sentence
+
+## 데이터셋(정수 인코딩된 것) 샘플 출력
+print(encoder_input_test[25])
+print(decoder_input_test[25])
+print(decoder_target_test[25])
+
+## 추론 진행 함수
+def decode_sequence(input_seq, model, src_vocab_size, tar_vocab_size, max_output_len, int_to_src_token, int_to_tar_token):
+    encoder_inputs = torch.tensor(input_seq, dtype=torch.long).unsqueeze(0).to(device)
+
+    # 인코더의 초기 상태 설정
+    encoder_outputs, hidden, cell = model.encoder(encoder_inputs)
+
+    # 시작 토큰 <sos>을 디코더의 첫 입력으로 설정
+    # unsqueeze(0)는 배치 차원을 추가하기 위함.
+    decoder_input = torch.tensor([3], dtype=torch.long).unsqueeze(0).to(device)
+
+    decoded_tokens = []
+
+    # for문을 도는 것 == 디코더의 각 시점
+    for _ in range(max_output_len):
+        # decoder_input의 seq_length: 1
+        # output.shape: (1, 1, tar_vocab_size)
+        
+        # 루프마다 이전 시점의 hidden, cell 상태와 encoder_outputs(어텐션 계산을 위한 key, value)를 넘겨준다.
+        output, hidden, cell = model.decoder(decoder_input, encoder_outputs, hidden, cell)
+
+        # 소프트맥스 회귀를 수행. 예측 단어의 인덱스
+        # 각 단어의 확률 분포로부터 가장 높은 값을 가진 단어 인덱스를 선택
+        output_token = output.argmax(dim=-1).item()
+
+        # 종료 토큰 <eos>
+        if output_token == 4:
+            break
+
+        # 각 시점의 단어(정수)는 decoded_tokens에 누적하였다가 최종 번역 시퀀스로 리턴합니다.
+        decoded_tokens.append(output_token)
+
+        # 현재 시점의 예측. 다음 시점의 입력으로 사용된다.
+        decoder_input = torch.tensor([output_token], dtype=torch.long).unsqueeze(0).to(device)
+
+    return ' '.join(int_to_tar_token[token] for token in decoded_tokens)
+
+## 추론 테스트
+for seq_index in [3, 50, 100, 300, 1001]:
+  input_seq = encoder_input_train[seq_index]
+  translated_text = decode_sequence(input_seq, model, src_vocab_size, tar_vocab_size, 20, index_to_src, index_to_tar)
+
+  print("입력문장 :",seq_to_src(encoder_input_train[seq_index]))
+  print("정답문장 :",seq_to_tar(decoder_input_train[seq_index]))
+  print("번역문장 :",translated_text)
+  print("-"*50)
+
+for seq_index in [3, 50, 100, 300, 1001]:
+  input_seq = encoder_input_test[seq_index]
+  translated_text = decode_sequence(input_seq, model, src_vocab_size, tar_vocab_size, 20, index_to_src, index_to_tar)
+
+  print("입력문장 :",seq_to_src(encoder_input_test[seq_index]))
+  print("정답문장 :",seq_to_tar(decoder_input_test[seq_index]))
+  print("번역문장 :",translated_text)
+  print("-"*50)
