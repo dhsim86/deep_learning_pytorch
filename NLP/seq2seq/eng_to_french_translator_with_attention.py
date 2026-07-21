@@ -328,7 +328,7 @@ class Seq2Seq(nn.Module):
         self.decoder = decoder
 
     def forward(self, src, trg):
-        # encoder_outputs: key, value인 전 시점의 인코더 은닉 상태를 활용
+        # encoder_outputs: key, value인 모든 시점의 인코더 은닉 상태를 활용
         encoder_outputs, hidden, cell = self.encoder(src)
 
         # 어텐션 계산을 위해 encoder_ouputs도 넘긴다.
@@ -345,3 +345,5 @@ model = Seq2Seq(encoder, decoder)
 # ignore_index=0으로 패딩 토큰 인덱스는 무시하도록 설정
 loss_function = nn.CrossEntropyLoss(ignore_index=0)
 optimizer = optim.Adam(model.parameters())
+
+print(model)
