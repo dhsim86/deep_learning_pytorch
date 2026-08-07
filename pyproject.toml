@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "datasets>=5.0.1",
     "gensim>=4.4.0",
     "ipython>=9.15.0",
     "konlpy>=0.6.0", # 한국어 자연어 처리를 위한 형태소 분석기 패키지
