@@ -234,9 +234,9 @@ device = torch.device(
 print('사용할 디바이스:', device)
 
 ## 모델 로드
-num_labels = 3
 
 ## 텍스트 분류하기 위해 'BertForSequenceClassification' 사용. num_labels에 레이블 갯수를 지정
+num_labels = 3
 model = BertForSequenceClassification.from_pretrained("klue/bert-base", num_labels=num_labels)
 ## model.cuda()는 모델의 파라미터와 버퍼를 NVIDIA GPU 메모리로 옮기는 메서드(= model.to('cuda'))다.
 ## model.cuda()는 NVIDIA GPU 전용. to(device)를 쓰면 cuda/mps/cpu 어디서든 동작한다.
