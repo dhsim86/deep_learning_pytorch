@@ -18,23 +18,23 @@ dependencies = [
     "scikit-learn>=1.7.1", # 머신러닝을 위한 파이썬 패키지 # torch
     "seqeval>=1.2.2",
     "spacy>=3.8.14",
-    "torch~=2.7.1",
-    "torchvision>=0.22.1",
+    "torch~=2.12.1",
+    "torchvision>=0.27.1",
     "tqdm>=4.67.1",
     "transformers>=5.14.1",
 ]
 
 # torch CUDA index
 [[tool.uv.index]]
-name = "pytorch-cu118"
-url = "https://download.pytorch.org/whl/cu118"
+name = "pytorch-cu132"
+url = "https://download.pytorch.org/whl/cu132"
 explicit = true
 
 [tool.uv.sources]
 # if the system is not macOS, use the CUDA index
 torch = [
-  { index = "pytorch-cu118", marker = "sys_platform != 'darwin'" }
+  { index = "pytorch-cu132", marker = "sys_platform != 'darwin'" }
 ]
 torchvision = [
-  { index = "pytorch-cu118", marker = "sys_platform != 'darwin'" }
+  { index = "pytorch-cu132", marker = "sys_platform != 'darwin'" }
 ]
