@@ -356,8 +356,6 @@ device = torch.device(
 print('사용할 디바이스:', device)
 
 ## 모델 로드
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 ### 개체명 인식, 즉 각 입력 토큰의 출력을 각각 분류하기 위한 BertForTokenClassification 사용
 ### 레이블의 갯수로 태깅 정보 갯수 지정
 model = BertForTokenClassification.from_pretrained("klue/bert-base", num_labels=tag_size) 
