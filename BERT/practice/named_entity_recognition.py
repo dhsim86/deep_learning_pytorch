@@ -99,9 +99,9 @@ for one_word in sent:
     tokens.extend(subword_tokens)
 
 # ['▶', '쿠', '##마리', '한동', '##수', '##가', '말', '##하', '##는', "'", '가', '##넷', '&', '에르', '##덴', "'"]
-print('BERT 토크나이저 적용후 문장 :',tokens)
+print('BERT 토크나이저 적용후 문장 :', tokens)
 print('레이블 :', label) # ['O', 'PER-B', 'PER-I', 'O', 'PER-B', 'O', 'PER-B']
-print('레이블의 정수 인코딩 :',[tag_to_index[idx] for idx in label]) #  [0, 1, 2, 0, 1, 0, 1]
+print('레이블의 정수 인코딩 :', [tag_to_index[idx] for idx in label]) #  [0, 1, 2, 0, 1, 0, 1]
 print('문장의 길이 :', len(tokens)) # 16
 print('레이블의 길이 :', len(label)) # 7
 
@@ -109,6 +109,14 @@ print('레이블의 길이 :', len(label)) # 7
 ## 단어로부터 분리된 서브워드들에 대해서, 첫 번째 서브워드에만 레이블을 부여하고 나머지는 부여하지 않는다.
 ## -> 첫 번째 서브워드에만 원래 레이블 부여
 ## -> 나머지 서브워드들은 별도 레이블 정수(-100)를 부여 (이후 학습 때 손실 함수가 이를 무시하도록 적용)
+##
+## [왜 하필 -100 인가?]
+## -100은 "29개 개체명 태그 중 하나"가 아니다. 태그 정수는 0~28이므로 -100은 애초에 유효한 태그가 아니다.
+## -100은 손실(오차)을 계산할 때 "이 위치는 아예 없는 것으로 취급하고 건너뛰라"는 뜻으로
+## 미리 약속된 표시값(센티널, sentinel)이다.
+## 이 약속은 PyTorch가 정한 것으로, nn.CrossEntropyLoss의 ignore_index 인자 기본값이 -100이다.
+## -> 그래서 레이블에 -100을 넣어두는 것만으로 별도 코드 없이 손실 계산에서 자동 제외된다.
+##    (자세한 확인은 아래 "손실 함수에서 -100 레이블은 제외 예시" 섹션과 학습 루프의 주석 참고)
 tokens = []
 labels_ids = []
 for one_word, label_token in zip(train_data_sentence[1], train_data_label[1]):
@@ -118,8 +126,10 @@ for one_word, label_token in zip(train_data_sentence[1], train_data_label[1]):
 
 # ['▶', '쿠', '##마리', '한동', '##수', '##가', '말', '##하', '##는', "'", '가', '##넷', '&', '에르', '##덴', "'"]
 print('토큰화 후 문장 :',tokens)
-## -100 레이블에 대해서는 학습을 무시하도록 [PAD] 토큰으로 취급
-## -> 즉, 레이블에 대해서 문장의 길이를 맞추기 위해 패딩을 진행할 때도 -100을 부여
+## 레이블 쪽에서 -100은 "학습에서 무시할 자리"를 뜻한다. 문장 길이를 맞추는 패딩 자리에도 -100을 부여한다.
+## -> 즉 -100이 붙는 자리는 (1)첫 번째 서브워드가 아닌 자리, (2)[CLS]/[SEP] 자리, (3)패딩 자리 세 종류다.
+## 주의: -100은 토크나이저의 [PAD] 토큰 ID(0)와는 전혀 다른 값이다. 아래 print에서 -100을 '[PAD]'라는
+##      글자로 바꿔 출력하는 것은 사람이 읽기 편하도록 표시만 그렇게 한 것이며, 실제 값은 -100이다.
 # ['O', 'PER-B', '[PAD]', 'PER-I', '[PAD]', '[PAD]', 'O', '[PAD]', '[PAD]', 'PER-B', '[PAD]', '[PAD]', 'O', 'PER-B', '[PAD]', '[PAD]']
 print('레이블 :', ['[PAD]' if idx == -100 else index_to_tag[idx] for idx in labels_ids])
 print('레이블의 정수 인코딩 :', labels_ids) # [0, 1, -100, 2, -100, -100, 0, -100, -100, 1, -100, -100, 0, 1, -100, -100]
@@ -149,6 +159,8 @@ def convert_examples_to_features(examples, labels, max_seq_len, tokenizer, pad_t
             subword_tokens = tokenizer.tokenize(one_word)
             tokens.extend(subword_tokens)
             # 서브워드 중 첫번째 서브워드만 개체명 레이블을 부여하고 그외에는 -100으로 채운다.
+            # -> 여기서 채운 -100이 나중에 학습 시 손실 계산에서 자동으로 제외되고,
+            #    평가 시에도 sequences_to_tags에서 걸러진다. (즉 이 한 줄이 '제외 처리'의 전부다)
             labels_ids.extend([tag_to_index[label_token]] + [pad_token_id_for_label] * (len(subword_tokens) - 1))
 
         # [CLS]와 [SEP]를 후에 추가할 것을 고려하여 최대 길이를 초과하는 샘플의 경우 max_seq_len - 2의 길이로 변환.
@@ -262,6 +274,8 @@ print("\n=============================================")
 
 ######################################################################
 # 손실 함수에서 -100 레이블은 제외 예시
+## 이 섹션이 중요한 이유: 여기서 손으로 확인하는 동작이 곧 BertForTokenClassification 내부에서
+## 그대로 일어나는 동작이다. 그래서 학습 루프에서는 labels에 -100을 그냥 넘기기만 하면 된다.
 import torch.nn as nn
 
 ## nn.CrossEntropy가 레이블이 -100인 위치에서 오차를 어떻게 무시하는지 확인
@@ -304,6 +318,8 @@ loss_fn = nn.CrossEntropyLoss()
 loss = loss_fn(outputs, targets)
 # 오차
 # 즉, nn.CrossEntropyLoss(ignore_index=-100)로 하고 정답 레이블이 [2, -100, 0, -100]일 때와 오차가 같다.
+# -> ignore_index=-100은 "그 위치의 데이터를 애초에 빼고 계산한 것"과 수학적으로 동일하다는 의미다.
+#    (평균을 낼 때 분모에서도 빠진다. 위 예시는 4개가 아니라 유효한 2개로 나눈 값이다.)
 print(f'calculated loss: {loss.item()}') # 0.40760594606399536
 
 print("\n=============================================")
@@ -356,8 +372,13 @@ device = torch.device(
 print('사용할 디바이스:', device)
 
 ## 모델 로드
-### 개체명 인식, 즉 각 입력 토큰의 출력을 각각 분류하기 위한 BertForTokenClassification 사용
+### 개체명 인식, 즉 각 입력 토큰 위치의 출력 결과를 각각 분류하기 위한 BertForTokenClassification 사용
 ### 레이블의 갯수로 태깅 정보 갯수 지정
+### -> num_labels=29 이므로 모델의 출력층은 토큰 위치마다 29개의 로짓만 내보낸다.
+###    따라서 예측 결과(argmax)는 항상 0~28 사이의 값이며, 모델이 -100을 예측하는 일은 구조적으로 불가능하다.
+###    (-100은 '정답 후보'가 아니라 '손실 계산에서 빼라'는 표시값이라는 점을 기억할 것)
+### -> 또한 BertForTokenClassification은 labels를 함께 넘겨주면 내부에서 손실까지 계산해 준다.
+###    그 손실 함수가 nn.CrossEntropyLoss()이며 ignore_index 기본값이 -100이다. (학습 루프 주석에서 상세 설명)
 model = BertForTokenClassification.from_pretrained("klue/bert-base", num_labels=tag_size) 
 optimizer = Adam(model.parameters(), lr=5e-5)
 model.to(device)
@@ -366,6 +387,9 @@ model.to(device)
 ### f1 score과 같은 정확한 점수를 계산하기 위해, 예측값과 레이블이 정수 시퀀스가 아닌 태깅 정보들의 시퀀스끼리 비교
 ### -> 모델의 예측값이 [0 1 0 2 0 0]이고, 레이블이 [‑100 1 ‑100 2 ‑100 ‑100]인 경우
 ###    -100인 위치에 대한 예측값과 레이블을 제외하고 태깅 정보 시퀀스로 변경 후 평가
+### -> 여기서 제외하는 위치는 학습 시 손실 계산에서 제외된 위치와 정확히 같다. (학습 기준 == 평가 기준)
+###    첫 번째 서브워드가 아닌 위치에서 모델이 어떤 태그를 출력하든 아예 읽지 않으므로 점수에 영향이 없다.
+###    예시의 0번 위치처럼 모델이 'O'(0)를 출력해도, 레이블이 -100이면 그 예측값은 버려진다.
 def sequences_to_tags(label_ids, pred_ids, index_to_tag):
     # label_ids: 실제 레이블의 인덱스 시퀀스 리스트 (2D 리스트)
     # pred_ids: 예측된 레이블의 인덱스 시퀀스 리스트 (2D 리스트)
@@ -438,9 +462,9 @@ print("\n=============================================")
 
 ######################################################################
 # 모델 학습 진행
-## 학습 동안 모델 파라미터 업데이트 횟수
+## 학습 동안 1 epoch 당 모델 파라미터 업데이트 횟수
 steps = len(train_input_ids) // batch_size + 1
-print("모델 학습 파라미터 업데이트 횟수: ", steps) # 2532
+print("1 epoch 당 모델 학습 파라미터 업데이트 횟수: ", steps) # 2532
 
 ## 모델 학습
 epochs = 3
@@ -457,8 +481,37 @@ for epoch in range(epochs):
         labels = labels.to(device)
 
         # 모델에 데이터를 입력하여 예측값(outputs)을 계산하고 손실(loss)도 계산
-        # 확인 필요: 학습할 때는 모델이 -100인 레이블에 대해서도 학습 (첫 번째 서브워드 토큰이 아닌 위치)
-        # -> 그래야 모델이 첫 번째 서브워드 토큰이 아닌 것에 대해서는 -100으로 예측하도록 학습하고, 평가시 확인?
+        # labels에 -100이 그대로 들어있지만, 여기서 따로 걸러낼 필요가 없다.
+        # 레이블에 -100을 넣어둔 것 자체가 이미 "손실 계산에서 제외" 처리이기 때문이다.
+        #
+        # [왜 별도 처리 없이 그냥 넘겨도 되는가]
+        # BertForTokenClassification의 forward 내부는 아래와 같이 구현되어 있다.
+        #   (transformers/models/bert/modeling_bert.py)
+        #       if labels is not None:
+        #           loss_fct = CrossEntropyLoss()                                     # 인자 없이 생성
+        #           loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
+        # 여기서 쓰이는 CrossEntropyLoss는 torch.nn.CrossEntropyLoss이고, 인자를 주지 않았으므로
+        # ignore_index가 기본값인 -100으로 설정된다.
+        # -> 즉 위쪽 "손실 함수에서 -100 레이블은 제외 예시" 섹션에서 직접 만들어 확인한
+        #    nn.CrossEntropyLoss(ignore_index=-100)과 완전히 동일한 손실 함수가 모델 내부에서 사용된다.
+        # -> 그 결과 레이블이 -100인 위치는 손실에 전혀 반영되지 않고, 해당 위치의 그레디언트는 정확히 0이 된다.
+        #    (그레디언트가 0이면 그 위치 때문에 파라미터가 바뀌는 일이 없다 = 학습되지 않는다)
+        # -> 정리하면, 첫 번째 서브워드가 아닌 위치와 [CLS]/[SEP]/[PAD] 위치는 학습 대상에서 빠지고,
+        #    각 단어의 첫 번째 서브워드 위치만 학습된다. 원래 의도한 대로 동작하고 있다.
+        #
+        # [초보자가 흔히 하는 오해] "모델이 -100이라는 값을 예측하도록 학습되는 것인가?"
+        # -> 아니다. 다음 두 가지 이유로 애초에 불가능하다.
+        #    1) -100은 정답 클래스가 아니다. 출력층은 num_labels=29개의 로짓만 내보내므로
+        #       예측값(argmax)은 항상 0~28이다. 모델이 -100을 출력할 경로 자체가 존재하지 않는다.
+        #    2) 그 위치는 손실에서 제외되어 그레디언트가 0이므로, 무언가를 "배우는" 일이 일어나지 않는다.
+        # -> 그러면 그 위치의 예측값은 어떻게 되는가? 아무 태그나 나올 수 있고, 신경 쓸 필요가 없다.
+        #    평가 단계의 sequences_to_tags가 레이블이 -100인 위치를 읽지도 않고 버리기 때문이다.
+        #    (학습에서 제외한 위치 == 평가에서 제외하는 위치 이므로 기준이 서로 일치한다)
+        #
+        # [주의] -100이라는 숫자가 특별한 이유는 순전히 PyTorch의 기본값 약속 때문이다.
+        # 만약 convert_examples_to_features의 pad_token_id_for_label을 -1 같은 값으로 바꾸면,
+        # 모델이 알아서 무시해주지 않으므로 nn.CrossEntropyLoss(ignore_index=-1)로 손실을 직접 계산해야 한다.
+        # (그대로 넘기면 -1은 유효한 클래스 범위(0~28) 밖의 값이라 에러가 발생한다)
         outputs = model(input_ids, attention_mask=attention_masks, token_type_ids=token_type_ids, labels=labels)
         loss = outputs.loss # 손실값 추출
 
@@ -478,5 +531,6 @@ print("\n=============================================")
 ######################################################################
 # 모델 예측
 ## 학습하지 않은 임의의 문장에 대해 개체명 태깅 정보를 예측
+
 
 ## 임의의 문장에 대한 예측을 위해 입력 문장 전처리를 진행하는 함수 정의
