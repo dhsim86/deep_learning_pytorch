@@ -126,10 +126,43 @@ for epoch in range(epochs):
     for step, batch in tqdm(enumerate(data_loader), total=steps):
         # 배치를 선택한 디바이스로 이동
         batch = batch.to(device)
-        # 레이블을 배치와 동일하게 설정 (입력을 그대로 레이블로 사용)
+        # ─────────────────────────────────────────────────────────────────
+        # labels를 입력(batch)과 똑같이 주는 이유
+        #
+        # GPT는 "다음 토큰 맞히기(next token prediction)"로 학습하는 모델이다.
+        # 즉, 사람이 따로 정답을 만들어 줄 필요가 없고 입력 문장 자체가 정답이 된다.
+        # 문장을 한 칸씩 밀어서 비교하면 (입력 → 정답) 쌍이 자동으로 만들어지기 때문이다.
+        #
+        #   입력: </s>  <usr>  12시  땡!   <sys>  하루가  또  가네요.  </s>
+        #   정답:  ↓      ↓     ↓     ↓      ↓      ↓     ↓     ↓
+        #        <usr>  12시   땡!  <sys>  하루가   또  가네요.  </s>
+        #
+        #   ("</s>"를 봤으면 "<usr>"를, "</s><usr>"까지 봤으면 "12시"를 맞히도록 학습)
+        #
+        # 그런데 이렇게 한 칸 밀어주는 작업(shift)을 우리가 직접 할 필요는 없다.
+        # GPT2LMHeadModel은 labels가 함께 들어오면 내부에서 알아서
+        #   - 예측값(logits)에서는 마지막 토큰을 잘라내고  → logits[..., :-1, :]
+        #   - 정답(labels)에서는 첫 토큰을 잘라낸 뒤       → labels[..., 1:]
+        #   - 둘을 짝지어 CrossEntropyLoss를 계산한다
+        # 따라서 우리는 "입력과 완전히 동일한 labels"만 넘겨주면 되고,
+        # 오히려 우리가 미리 한 칸 밀어서 넣으면 두 번 밀리게 되어 학습이 망가진다.
+        #
+        # clone()을 쓰는 이유: batch와 메모리를 공유하지 않는 별도 복사본을 만들기 위함.
+        # (labels = batch 로 두면 같은 텐서를 가리키므로, 한쪽을 수정하면 다른 쪽도 바뀐다.
+        #  아래 -100 마스킹처럼 labels만 손대는 경우를 대비한 안전장치)
+        #
+        # (참고) 지금 코드는 패딩용 <pad> 토큰까지 정답에 포함되어 손실 계산에 들어간다.
+        #        "짧은 문장 뒤에는 <pad>가 온다"는 것까지 학습하게 되는 셈이다.
+        #        패딩을 손실에서 제외하고 싶다면 그 위치를 -100으로 바꿔주면 된다.
+        #        (PyTorch의 CrossEntropyLoss는 정답이 -100인 위치를 무시한다)
+        #          labels[labels == tokenizer.pad_token_id] = -100
+        # ─────────────────────────────────────────────────────────────────
         labels = batch.clone()
+        labels[labels == tokenizer.pad_token_id] = -100
 
         # 모델에 입력을 주고, 출력과 손실값을 계산
+        # labels를 함께 넘기면 모델이 위 방식으로 손실을 계산해 result.loss에 담아준다.
+        # (labels를 넘기지 않으면 result.loss는 None이고 예측값(logits)만 반환된다)
         result = model(input_ids=batch, labels=labels)
 
         loss = result.loss  # 계산된 손실값
