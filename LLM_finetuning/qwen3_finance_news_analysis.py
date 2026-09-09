@@ -118,17 +118,15 @@ tokenizer = AutoTokenizer.from_pretrained(model_id)
 
 ## 인코딩 OFF / 생성 프롬프트 OFF
 text = tokenizer.apply_chat_template(train_dataset[0]["messages"], tokenize=False, add_generation_prompt=False)
-# <|begin_of_text|>
-# <|start_header_id|>system<|end_header_id|>
-#
+# <|im_start|>system
 # 당신은 주어진 뉴스로부터 종목에 영향을 주는 뉴스인지 판별하는 금융 뉴스 판별기입니다.
 # 두 가지 답변 케이스가 존재하며 무조건 파이썬의 dictionary 형식으로 작성하십시오.
 # 큰 따옴표 사이에 다른 따옴표들을 적으려고 시도하지 마십시오. 이는 dictionary 파싱을 실패하게 하는 원인이 됩니다. 따라서 주의하십시오.
 # 아래 dictionary에서 각 value는 지시사항에 해당합니다. 지사사항을 따라 적지마십시오. 해당 지시사항에 따라 적절한 value를 채워넣으십시오.
 # 해당사항이 없다면 빈 문자열 또는 빈 리스트로 적어야 합니다. 임의로 '없음' 등을 적어서는 안 됩니다.
-#
+# 
 # 만약 해당 뉴스가 특정 종목(회사)이 언급되지 않거나, 특정 종목(회사)와 아무런 연관이 없는 뉴스일 경우에는 아래와 같이 작성합니다.
-#
+# 
 # 답변:
 # {"is_stock_related": False,
 # "summary": "여기에는 해당 뉴스를 요약해서 요약문을 작성하십시오"}
@@ -144,17 +142,14 @@ text = tokenizer.apply_chat_template(train_dataset[0]["messages"], tokenize=Fals
 # "reason_for_negative_impact": "위의 종목들이 해당 뉴스로부터 긍정적인 영향을 받을 것으로 추정한 이유를 여기에다가 작성하십시오",
 # "negative_keywords": ["부정적인 영향을 줄 것으로 추정되는 종목들이 존재했다면 여기에 부정적인 영향을 주는데 근거가 되었던 주요한 명사 키워드들을 파이썬 문자열 리스트 형태로 작성하십시오. 기술명, 회사명 등을 모두 포함합니다. 복합 명사 또한 허용합니다. 없다면 빈 리스트로 작성합시오."],
 # "summary": "여기에는 해당 뉴스를 요약해서 요약문을 작성하십시오"}
-# <|eot_id|>
-# <|start_header_id|>user<|end_header_id|>
-#
+# <|im_end|>
+# <|im_start|>user
 # CEO포커스 임기 초년 나희승 코레일 사장 꼴찌 성적표 받자마자 열차 사고까지
 # 나희승 한국철도공사 사장. 사진 한국철도공사 제공 지난해 공공기관 경영평가에서 한국철도공사 코레일 가 36개 공기업 가운데 유일하게 E등급 을 맞으며 꼴찌라는 불명예를 얻게 됐다. 이번 경영평가에서 국토교통부 산하 공공기관 가운데 성적이 낮은 곳은 E등급인 코레일뿐만이 아니었다. 코레일이 최하 점수를 받은 이유로는 지속적으로 발생한 안전사고가 지목된다. 코레일은 재난·안전관리 분야에서 최하등급을 받았다. 특히 나희승 56·사진 코레일 사장에게 이번 평가는 더욱 뼈아프게 다가올 수밖에 없다. 올 1월에 발생한 부산행 KTX 탈선 사고는 지난해 11월 취임한 나 사장의 임기 중에 발생했다. 나 사장이 책임에서 자유롭지 못하다는 뜻이다. 이런 상황에 지난 1일 수서고속철도 SRT 탈선 사고가 또 발생해 코레일의 안전관리 체계 자체에 문제가 있는 것이 아니냐는 우려가 나온다. 원희룡 국토교통부 장관은 코레일의 안전관리 체계의 근본적인 점검을 지시한 상태다. 나 사장 전임이던 손병석 전 사장의 경우 2020년 경영평가에서 경영관리 부문 E등급을 받자 스스로 자리를 내려놨다. 당시 코레일 전체 등급은 C등급이었음에도 손 사장은 책임을 지고 물러났다. 공공기관 경영평가 등급은 성과급 기준이 돼 당시 내부에서 불만의 목소리가 나오면서 압박도 커진 것으로 알려졌다. 일각에서는 나 사장이 친야권 인사로 분류돼 새 정부의 평가에 영향을 준 것이 아니냐는 의구심도 제기되는 상황이다. 이전 정부에서 여당이던 더불어민주당은 철도 핵심정책인 남북철도 등 업무를 수행할 적임자로 나 사장을 지목한 바 있다. 나 사장은 철도 연구자로 잘 알려졌다. 나 사장은 2019년부터 민주평화통일자문회의 경제협력분과위원회 상임위원을 맡는 등 민주당 측과 가까운 인사로 분류되는 게 사실이다. 임기가 2024년 11월까지 2년 이상 남은 나 사장이 이번 난관을 어떻게 극복할지 관심이 집중된다.
-# <|eot_id|>
-# <|start_header_id|>assistant<|end_header_id|>
-# 
+# <|im_end|>
+# <|im_start|>assistant
 # {'is_stock_related': False, 'negative_impact_stocks': None, 'negative_keywords': None, 'positive_impact_stocks': None, 'positive_keywords': None, 'reason_for_negative_impact': None, 'reason_for_positive_impact': None, 'summary': '나희승 코레일 사장이 임기 초반에 안전사고와 관련하여 코레일이 공공기관 경영평가에서 최하등급을 받았다는 뉴스입니다. 나 사장의 안전 관리 체계에 대한 책임론이 대두되고 있으며, 이는 그의 정치적 배경과도 관련이 있다는 분석이 제기되고 있는 상황입니다.'}
-# <|eot_id|>
-# <|start_header_id|>assistant<|end_header_id|>
+# <|im_end|>
 print(text)
 
 print("\n=============================================")
@@ -328,48 +323,6 @@ print("\n=============================================")
 ### 학습을 위한 labels를 만들 때 필요없는 부분(시스템/유저 프롬프트 부분)은 -100으로 처리해야 한다.
 ### -> 실제 학습시 labels에 -100인 부분들은 생성을 위한 학습 대상에서 제외된다.
 
-### 1. 챗 템플릿 적용 후
-# <|begin_of_text|>
-# <|start_header_id|>system<|end_header_id|>
-# 당신은 친절한 AI 어시스턴트입니다.
-# <|eot_id|>
-# <|start_header_id|>user<|end_header_id|>
-# 안녕하세요 , 오늘 날씨는 어떤가요?
-# <|eot_id|>
-# <|start_header_id|>assistant<|end_header_id|>
-# 안녕하세요! 오늘 날씨는 맑고 화창합니다.
-# <|eot_id|>
-
-### 2. 토크나이즈하면 input_ids를 얻는다.
-# input_ids = [
-#    128000, # <|begin_of_text|>
-#    128006, 9125, 128007, 198, # <|start_header_id|>system<|end_header_id|> (줄바꿈)
-#    22173, 13, 126808, 49816, 33302, 23239, 18966, 13, # 당신은 친절한 AI 어시스턴트입니다.
-#    128009, # <|eot_id|>
-#    128006, 882, 128007, 198, # <|start_header_id|>user<|end_header_id|> (줄바꿈)
-#    118145, 11, 24482, 1174, 107485, 102823, 64337, 30, # 안녕하세요, 오늘 날씨는 어떤가요?
-#    128009, # <|eot_id|>
-#    128006, 78191, 128007, 198, # <|start_header_id|>assistant<|end_header_id|> (줄바꿈)
-#    118145, 0, 24482, 1174, 107485, 102823, 64337, 107823, 108562, 13, # 안녕하세요! 오늘 날씨는 맑고 화창합니다.
-#    128009 # <|eot_id|>
-# ]
-
-### 3. 모델이 학습/생성할 필요가 없는 부분은 -100으로 처리한 labels를 만든다.
-### -> -100으로 처리하는 이유: 손실함수(torch.nn.CrossEntropyLoss)는 ignore_index의 디폴트 값이 -100이다.
-### -> 모델은 -100이 아닌 부분만 학습하여, 모델이 응답만 학습하도록 유도
-# labels = [
-#   -100, # <|begin_of_text|>
-#   -100, -100, -100, -100, # <|start_header_id|>system<|end_header_id|> (줄바꿈)
-#   -100, -100, -100, -100, -100, -100, -100, -100, # 당신은 친절한 AI 어시스턴트입니다.
-#   -100, # <|eot_id|>
-#   -100, -100, -100, -100, # <|start_header_id|>user<|end_header_id|> (줄바꿈)
-#   -100, -100, -100, -100, -100, -100, -100, -100, # 안녕하세요 , 오늘 날씨는 어떤가요?
-#   -100, # <|eot_id|>
-#   -100, -100, -100, -100, # <|start_header_id|>assistant<|end_header_id|> (줄바꿈)
-#   118145, 0, 24482, 1174, 107485, 102823, 64337, 107823, 108562, 13, # 안녕하세요! 오늘 날씨는 맑고 화창합니다.
-#   128009 # <|eot_id|>
-# ]
-
 ## 마지막 assistant 메시지만 loss에 포함하도록 모델 고유 챗 템플릿을 토큰화한다.
 def _as_token_list(encoded):
     """Transformers의 BatchEncoding/list 반환값에서 1차원 토큰 리스트를 꺼낸다."""
@@ -444,15 +397,15 @@ example = train_dataset[0]
 batch = collate_fn([example])
 
 print("\n처리된 배치 데이터:")
-print("입력 ID 형태:", batch["input_ids"].shape) # torch.Size([1, 1540])
-print("어텐션 마스크 형태:", batch["attention_mask"].shape) # torch.Size([1, 1540])
-print("레이블 형태:", batch["labels"].shape) # torch.Size([1, 1540])
+print("입력 ID 형태:", batch["input_ids"].shape) # torch.Size([1, 1217])
+print("어텐션 마스크 형태:", batch["attention_mask"].shape) # torch.Size([1, 1217])
+print("레이블 형태:", batch["labels"].shape) # torch.Size([1, 1217])
 
 # [128000, 128006, 9125, 128007, 198, 65895, 83628, 34804, 56773, 125441, ... 
 print('input_ids: ')
 print(batch["input_ids"][0].tolist())
 
-# <|begin_of_text|><|start_header_id|>system<|end_header_id|>
+# <|im_start|>system
 # 당신은 주어진 뉴스로부터 종목에 영향을 주는 뉴스인지 판별하는 금융 뉴스 판별기입니다.
 # 두 가지 답변 케이스가 존재하며 무조건 파이썬의 dictionary 형식으로 작성하십시오.
 # 큰 따옴표 사이에 다른 따옴표들을 적으려고 시도하지 마십시오. 이는 dictionary 파싱을 실패하게 하는 원인이 됩니다. 따라서 주의하십시오.
@@ -476,7 +429,7 @@ decoded_labels = tokenizer.decode(
     skip_special_tokens=False,
     clean_up_tokenization_spaces=False
 )
-# {'is_stock_related': False, 'negative_impact_stocks': None, ... 있는 상황입니다.'}<|eot_id|>
+# {'is_stock_related': False, 'negative_impact_stocks': None, ... 있는 상황입니다.'}<|im_end|>
 print("\nlabels 디코딩 결과 (-100 제외):")
 print(decoded_labels)
 
@@ -489,21 +442,21 @@ example1 = train_dataset[1]
 # 개별 길이 확인 (토큰화후)
 tokenized0 = tokenize_with_assistant_labels(example0["messages"])
 tokenized1 = tokenize_with_assistant_labels(example1["messages"])
-print(f"0번 데이터 길이: {len(tokenized0['input_ids'])}") # 1540
-print(f"1번 데이터 길이: {len(tokenized1['input_ids'])}") # 1403
+print(f"0번 데이터 길이: {len(tokenized0['input_ids'])}") # 1217
+print(f"1번 데이터 길이: {len(tokenized1['input_ids'])}") # 1099
 
 batch = collate_fn([example0, example1])
 print("\n배치 처리 후:")
-print(f"입력 ID 형태: {batch['input_ids'].shape}") # torch.Size([2, 1540])
-print(f"어텐션 마스크 형태: {batch['attention_mask'].shape}") # torch.Size([2, 1540])
+print(f"입력 ID 형태: {batch['input_ids'].shape}") # torch.Size([2, 1217])
+print(f"어텐션 마스크 형태: {batch['attention_mask'].shape}") # torch.Size([2, 1217])
 
 # 길이가 짧은 샘플이 길이가 긴 샘플에 맞춰진다. (어텐션 마스크 0이 채워진다.)
 max_length_in_batch = max(len(tokenized0['input_ids']), len(tokenized1['input_ids']))
 print(f"\n배치내 최대 길이: {max_length_in_batch}")
-print(f"0번 샘플 어텐션 마스크 1의 개수: {batch['attention_mask'][0].sum().item()}") # 1540
+print(f"0번 샘플 어텐션 마스크 1의 개수: {batch['attention_mask'][0].sum().item()}") # 1217
 print(f"0번 샘플 어텐션 마스크 0의 개수: {(batch['attention_mask'][0] == 0).sum().item()}") # 0
-print(f"1번 샘플 어텐션 마스크 1의 개수: {batch['attention_mask'][1].sum().item()}") # 1403
-print(f"1번 샘플 어텐션 마스크 0의 개수: {(batch['attention_mask'][1] == 0).sum().item()}") # 137
+print(f"1번 샘플 어텐션 마스크 1의 개수: {batch['attention_mask'][1].sum().item()}") # 1099
+print(f"1번 샘플 어텐션 마스크 0의 개수: {(batch['attention_mask'][1] == 0).sum().item()}") # 118
 
 print("\n=============================================")
 
@@ -528,7 +481,7 @@ else:
     )
 
 # 학습 시작
-trainer.train() # 모델이 자동으로 허브와 output_dir에 저장됨
+#trainer.train() # 모델이 자동으로 허브와 output_dir에 저장됨
 
 # 모델 저장
 #trainer.save_model() # 최종 모델을 저장
