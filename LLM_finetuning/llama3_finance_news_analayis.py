@@ -27,6 +27,10 @@ from trl import SFTConfig
 ## 모델, 데이터셋, 학습 설정을 한 번에 입력하여 효율적인 학습을 진행
 from trl import SFTTrainer
 
+# QLoRA 학습
+from transformers import BitsAndBytesConfig
+from peft import get_peft_model, prepare_model_for_kbit_training
+
 print("\n=============================================")
 
 ######################################################################
@@ -102,13 +106,11 @@ print(type(test_dataset))
 print("\n=============================================")
 
 ######################################################################
-# 모델 로드 및 챗 템플릿 적용 테스트
+# 챗 템플릿 적용 테스트
 
 ## 사용할 허깅페이스의 모델 ID
 model_id = "NCSOFT/Llama-VARCO-8B-Instruct" # Meta-Llama-3.1-8B 모델을 한국어 성능에 특화되도록 추가학습된 모델
 
-## 모델 및 토크나이저 로드
-model = AutoModelForCausalLM.from_pretrained(model_id, device_map="auto", torch_dtype=torch.bfloat16)
 tokenizer = AutoTokenizer.from_pretrained(model_id)
 
 ## LLaMa를 위한 챗 템플릿 적용
@@ -175,6 +177,26 @@ peft_config = LoraConfig(
     task_type="CAUSAL_LM",  # LoRA가 적용되는 작업의 유형. CAUSAL_LM은 시퀀스 생성 작업 (Causal Language Modeling)
 )
 
+if torch.cuda.is_available():
+    ## QLoRA 튜닝 설정
+    ### BitsAndBytesConfig 클래스를 통해 양자화 설정 정의
+    bnb_config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_use_double_quant=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_compute_dtype=torch.bfloat16
+    )
+
+    ## 모델 및 토크나이저 로드
+    model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=torch.bfloat16, quantization_config=bnb_config)
+
+    ## 모델을 4bit 학습을 위한 상태로 준비
+    model = prepare_model_for_kbit_training(model)
+    model = get_peft_model(model, peft_config)
+else:
+    ## 맥북(mps)는 bitsandbytes를 지원하지 않음
+    model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=torch.bfloat16) 
+
 ## 데이터의 최대 길이 제한
 max_seq_length=8192
 
@@ -203,13 +225,13 @@ args = SFTConfig(
     # [배치 크기] GPU 1장이 "한 번에" 동시에 처리하는 학습 샘플 개수
     ## 왜 필요? GPU 메모리(VRAM) 사용량을 결정하는 가장 큰 요인. 값이 크면 학습이 안정적이고 빠르지만 메모리가 터짐(OOM)
     ##          8B 모델 + 긴 뉴스 텍스트 조합이라 2 정도로 아주 작게 잡은 것 (OOM이 나면 1로 줄이면 됨)
-    per_device_train_batch_size=2,
+    per_device_train_batch_size=1, # GPU 메모리 사용량이 너무 커서 1로 줄임
 
     # [그래디언트 누적] 파라미터를 바로 업데이트하지 않고, 몇 번의 미니배치 계산 결과를 모았다가 한 번에 업데이트할지
     ## 동작: 배치 2개를 계산 -> 그래디언트를 메모리에 누적 -> 또 배치 2개 계산해서 누적 -> 그제서야 파라미터 1회 업데이트
     ## 왜 필요? "작은 배치로 여러 번 쪼개서 계산 = 큰 배치 한 번"과 수학적으로 거의 같은 효과를 내면서 메모리는 아낄 수 있음
     ## => 실질 배치 크기(effective batch size) = per_device_train_batch_size(2) x gradient_accumulation_steps(2) x GPU 수(1) = 4
-    gradient_accumulation_steps=2,
+    gradient_accumulation_steps=4,
 
     # [메모리 절약 기법] 순전파(forward) 때 계산한 중간 결과값을 전부 저장하지 않고, 역전파(backward) 때 필요한 부분을 다시 계산
     ## 왜 필요? 딥러닝은 역전파에 쓰려고 중간 계산값을 전부 메모리에 들고 있는데, 8B급 모델에서는 이게 VRAM을 엄청나게 잡아먹음
@@ -518,19 +540,29 @@ print("\n=============================================")
 
 ######################################################################
 # 모델 학습
-trainer = SFTTrainer(
-    model=model,
-    args=args, # SFTConfig
-    train_dataset=train_dataset,
-    data_collator=collate_fn,
-    peft_config=peft_config,
-)
+if torch.cuda.is_available():
+    # QLoRA 적용할 경우
+    trainer = SFTTrainer(
+        model=model,
+        args=args, # SFTConfig
+        train_dataset=train_dataset,
+        data_collator=collate_fn
+    )
+else:
+    # 일반 LoRA 적용할 경우, peft_config를 명시적으로 넘김
+    trainer = SFTTrainer(
+        model=model,
+        args=args, # SFTConfig
+        train_dataset=train_dataset,
+        data_collator=collate_fn,
+        peft_config=peft_config
+    )
 
 # 학습 시작
 trainer.train() # 모델이 자동으로 허브와 output_dir에 저장됨
 
 # 모델 저장
-trainer.save_model() # 최종 모델을 저장
+#trainer.save_model() # 최종 모델을 저장
 
 print("\n=============================================")
 
