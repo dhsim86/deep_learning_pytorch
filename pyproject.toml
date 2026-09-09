@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "accelerate>=1.14.0", # 복잡한 코드 수정없이, 단일 or 멀티 GPU, 혼합 정밀도, 분산 학습 환경에서 pytorch 코드를 쉽게 실행할 수 있게 돕는 라이브러리
+    "bitsandbytes>=0.50.2",
     "datasets>=5.0.1",
     "gensim>=4.4.0", # 대규모 텍스트 데이터의 토픽 모델링과 단어 임베딩을 빠르게 처리하기 위한 라이브러리
     "ipython>=9.15.0", # 표준 파이썬 인터프리터보다 더 강력하고 풍부한 기능을 제공하는 대화형 파이썬 셸
