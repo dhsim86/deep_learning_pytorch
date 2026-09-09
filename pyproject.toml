@@ -5,27 +5,27 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "accelerate>=1.14.0",
+    "accelerate>=1.14.0", # 복잡한 코드 수정없이, 단일 or 멀티 GPU, 혼합 정밀도, 분산 학습 환경에서 pytorch 코드를 쉽게 실행할 수 있게 돕는 라이브러리
     "datasets>=5.0.1",
-    "gensim>=4.4.0",
-    "ipython>=9.15.0",
+    "gensim>=4.4.0", # 대규모 텍스트 데이터의 토픽 모델링과 단어 임베딩을 빠르게 처리하기 위한 라이브러리
+    "ipython>=9.15.0", # 표준 파이썬 인터프리터보다 더 강력하고 풍부한 기능을 제공하는 대화형 파이썬 셸
     "konlpy>=0.6.0", # 한국어 자연어 처리를 위한 형태소 분석기 패키지
-    "kss>=6.0.6",
+    "kss>=6.0.6", # 한국어 텍스트를 문장 단위로 정확하고 빠르게 분리하는 라이브러리 (Korean Sentence Splitter)
     "matplotlib>=3.10.3", #  데이터를 차트(chart)나 플롯(plot)으로 시각화하는 패키지
     "nltk>=3.9.1", # 자연어 처리를 위한 파이썬 패키지
     "numpy>=2.3.1", # 수치 데이터를 다루는 파이썬 패키지
     "pandas>=2.3.1", # 파이썬 데이터 처리를 위한 라이브러리
-    "peft>=0.20.0",
+    "peft>=0.20.0", # PEFT를 통합 제공하는 파이썬 패키지 (LoRA, QLoRA, Prefix Tuning 등 다양한 미세조정 기법을 일관된 코드로 적용 가능)
     "pyqt6>=6.9.1", # matplotlib을 시각화할 때 사용
     "scikit-learn>=1.7.1", # 머신러닝을 위한 파이썬 패키지 # torch
     "sentence-transformers>=6.0.0",
-    "seqeval>=1.2.2",
-    "spacy>=3.8.14",
+    "seqeval>=1.2.2", # NLP에서 NER이나 품사 태깅같은 시퀀스 라벨링 모델의 성능 평가를 위한 파이썬 라이브러리
+    "spacy>=3.8.14", # https://wikidocs.net/227583
     "torch~=2.12.1",
-    "torchvision>=0.27.1",
+    "torchvision>=0.27.1", # 이미지 분류, 객체 탐지 등 컴퓨터 비전 작업을 쉽고 빠르게 수행할 수 있도록 돕는 라이브러리
     "tqdm>=4.67.1",
     "transformers>=5.14.1",
-    "trl>=1.12.0",
+    "trl>=1.12.0", # 허깅페이스에서 제공하는, 트랜스포머 기반 언어 모델과 비전 모델의 사후학습 및 강화학습을 지원하는 도구
 ]
 
 # torch CUDA index
