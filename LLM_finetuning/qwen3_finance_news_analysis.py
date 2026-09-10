@@ -162,37 +162,181 @@ print("\n=============================================")
 # 모델 학습 준비
 
 ## LoRA 튜닝 설정
+##
+## [LoRA를 처음 보는 사람을 위한 30초 요약]
+## 파인튜닝의 원래 방식은 모델의 모든 가중치 W를 직접 업데이트하는 것입니다(전체 파인튜닝).
+## 하지만 8B 모델이면 W만 16GB이고, 옵티마이저 상태까지 더하면 80GB 이상이 필요해 개인 GPU로는 불가능합니다.
+##
+## LoRA는 "W는 그대로 얼려두고, 변화량 dW만 따로 학습하자"는 아이디어입니다.
+## 여기에 "dW는 사실 그렇게 복잡한 정보가 아닐 것"이라는 가정을 더해, dW를 두 개의 얇은 행렬 곱으로 쪼갭니다.
+##
+##     원래     : y = W x                     (W는 예: 4096 x 4096 = 1,600만개)
+##     LoRA 적용: y = W x + (alpha/r) * B(A x)  (A는 8 x 4096, B는 4096 x 8 => 합쳐서 6.5만개)
+##
+## 학습 대상이 1,600만개에서 6.5만개로 줄었지만(약 0.4%), 실무에서 전체 파인튜닝에 근접한 성능이 나옵니다.
+## 그리고 학습이 끝나면 B*A를 W에 더해버릴 수 있어서(merge), 추론 속도는 원본과 완전히 동일합니다.
 peft_config = LoraConfig(
     lora_alpha=32,      # LoRA의 alpha, 스케일링 계수 설정. LoRA 가중치의 모델 출력 영향도를 조정
+                        ## 위 수식의 (alpha/r)이 곧 LoRA의 반영 강도입니다. 여기서는 32/8 = 4배로 증폭됩니다.
+                        ## 관례적으로 alpha = 2*r 또는 4*r을 씁니다. r을 올릴 때 alpha도 같은 비율로 올려주면
+                        ## 반영 강도가 유지되므로 학습률을 다시 튜닝하지 않아도 됩니다.
     lora_dropout=0.1,   # LoRA 적용시 드롭아웃 비율 설정. 학습 동안 10%의 뉴런을 랜덤하게 비활성화하여 과적합 방지
+                        ## 이 드롭아웃은 원본 W가 아니라 LoRA 경로(A x)에만 적용됩니다.
+                        ## 데이터가 793개로 적어 과적합 위험이 있는 상황이라 켜 두는 것이 좋습니다.
     r=8,                # LoRA 랭크, LoRA가 학습할 저차원 공간의 크기를 설정
+                        ## 위 수식에서 A, B의 얇은 쪽 차원입니다. r이 클수록 표현력(=배울 수 있는 양)이 커지지만
+                        ## 학습 파라미터와 메모리도 비례해 늘고 과적합 위험도 커집니다.
+                        ## 8~16은 "말투/출력 형식을 익히는" 정도의 작업에 적합한 출발점이고,
+                        ## 새로운 지식이나 복잡한 추론을 가르치려면 32~64를 검토합니다.
     bias="none",        # LoRA 적용시 편향 설정. none이면 편향이 LoRA에 의해 조정되지 않음. ["none", "all", "lora_only"]
     target_modules=["q_proj", "v_proj"], # LoRA를 적용할 레이어, 여기서는 Self Attention의 W^q, W^v 에 적용
+                        ## [알아두면 좋은 점] q_proj/v_proj만 고르는 것은 원조 LoRA 논문의 최소 구성입니다.
+                        ## 반면 QLoRA 논문은 "4비트 양자화로 잃은 정확도를 보상하려면 LoRA를 넓게 깔아야 한다"며
+                        ## 모든 선형 레이어(q,k,v,o + gate,up,down)에 적용할 것을 권장합니다.
+                        ## PEFT에서는 target_modules="all-linear" 한 줄로 그렇게 지정할 수 있습니다.
+                        ## 이 스크립트는 두 분기(LoRA/QLoRA)가 같은 설정을 공유하도록 최소 구성을 유지했지만,
+                        ## QLoRA로 실제 품질을 내야 한다면 "all-linear"로 바꿔 비교해 보는 것을 권합니다.
+                        ## (그만큼 학습 파라미터와 메모리는 늘어납니다)
     task_type="CAUSAL_LM",  # LoRA가 적용되는 작업의 유형. CAUSAL_LM은 시퀀스 생성 작업 (Causal Language Modeling)
+                        ## 이 값에 따라 PEFT가 모델을 감쌀 래퍼 클래스를 고릅니다(여기서는 PeftModelForCausalLM).
+                        ## 분류 작업이면 "SEQ_CLS"처럼 다른 값을 넣어야 하며, 잘못 넣으면 학습은 되지만
+                        ## 저장/불러오기 시점에 헤드가 맞지 않아 문제가 생깁니다.
 )
 
+# ==========================================================================================
+# [QLoRA vs 일반 LoRA] 아래 if/else가 갈리는 이유
+#
+# QLoRA(Quantized LoRA)를 한 문장으로 요약하면
+#   "원본 모델은 4비트로 압축해서 통째로 얼려두고, 그 위에 덧붙인 작은 LoRA 행렬만 학습한다"
+# 입니다. Konan-LLM-OND (Qwen3-4B 기반, 40.8억 파라미터) 기준으로 모델을 GPU에 올리는 데 드는 메모리는 대략 이렇게 줄어듭니다.
+#
+#   bf16(16비트)으로 그냥 로드   : 4.08B x 2바이트   = 약 8.2GB
+#   4bit로 양자화해서 로드      : 압축 대상 약 3.6B x 0.5바이트 + 임베딩 0.9GB = 약 2.7GB
+#
+# 그런데 이 4비트 양자화를 실제로 수행하는 bitsandbytes 라이브러리가 CUDA(NVIDIA) 전용입니다.
+# 애플 실리콘의 MPS에서는 사용할 수 없으므로, 맥북에서는 양자화를 포기하고
+# 원본을 bfloat16으로 그대로 올린 뒤 LoRA만 적용합니다. (= 일반 LoRA)
+#
+# 그래서 두 분기의 차이는 "양자화를 하느냐"만이 아니라, 그 결과로
+#   - QLoRA 분기 : prepare_model_for_kbit_training + get_peft_model 을 내가 직접 호출한다
+#   - LoRA 분기  : 아무것도 하지 않고, LoRA 적용을 맨 아래 SFTTrainer에게 맡긴다
+# 로 "LoRA를 누가 붙이는가"까지 달라진다는 점입니다. (자세한 이유는 맨 아래 SFTTrainer 부분 주석 참고)
+# ==========================================================================================
 if torch.cuda.is_available():
-    ## QLoRA 튜닝 설정
-    ### BitsAndBytesConfig 클래스를 통해 양자화 설정 정의
+    ## ------------------------------------------------------------------
+    ## [1] QLoRA 양자화 설정
+    ## ------------------------------------------------------------------
+    ## BitsAndBytesConfig = "모델 가중치를 어떤 방식으로 압축해서 불러올지" 적어두는 설정 객체.
+    ## 이 객체 자체는 아무 일도 하지 않고, 아래 from_pretrained에 넘겨지는 순간 실제로 적용됩니다.
     bnb_config = BitsAndBytesConfig(
+        # [4비트 로드] 모델 가중치를 4비트로 압축해서 불러온다 (16비트 대비 1/4 크기)
         load_in_4bit=True,
+
+        # [이중 양자화] 양자화 과정에서 생기는 부가 정보(quantization constant)까지 한 번 더 압축
+        ## 4비트 양자화는 가중치를 64개씩 블록으로 묶고, 블록마다 "스케일 상수"를 따로 저장합니다.
+        ## 파라미터가 수십억 개면 이 상수들도 무시할 수 없는 용량이 되는데, 그걸 또 압축해서
+        ## 파라미터당 약 0.4비트를 추가로 절약합니다. 정확도 손실은 거의 없어서 QLoRA 기본 권장값입니다.
         bnb_4bit_use_double_quant=True,
+
+        # [양자화 자료형] "nf4" = 4-bit NormalFloat, QLoRA 논문이 제안한 4비트 표현 방식
+        ## 4비트로는 숫자를 16종류밖에 표현할 수 없습니다. 그 16칸을 어디에 배치할지가 핵심인데,
+        ## nf4는 "신경망 가중치는 0을 중심으로 정규분포를 이룬다"는 성질을 이용해 값이 몰려 있는
+        ## 0 근처에 칸을 촘촘하게 배치합니다. 균등하게 나누는 "fp4"보다 정확도 손실이 적습니다.
         bnb_4bit_quant_type="nf4",
+
+        # [계산 자료형] 저장은 4비트지만, 실제 행렬 곱셈을 할 때는 이 자료형으로 되돌려(역양자화) 계산
+        ## 즉 QLoRA는 "저장 = 4비트 / 계산 = bfloat16"의 이중 구조이며 4비트로 직접 계산하지 않습니다.
+        ## 그래서 메모리는 크게 아끼지만, 매번 압축을 푸는 비용 때문에 속도는 오히려 조금 느려집니다.
+        ## (bfloat16은 NVIDIA Ampere 세대(A100, RTX 30xx) 이상에서만 지원. 구형 GPU라면 torch.float16)
         bnb_4bit_compute_dtype=torch.bfloat16
     )
 
-    ## 모델 및 토크나이저 로드
+    ## ------------------------------------------------------------------
+    ## [2] 모델 로드 - quantization_config를 넘기면 "불러오는 순간" 4비트로 압축된다
+    ## ------------------------------------------------------------------
+    ## [quantization_config가 하는 일]
+    ## from_pretrained가 체크포인트 파일을 읽어 들이면서, 모델 안의 nn.Linear 레이어들을
+    ## bitsandbytes의 bnb.nn.Linear4bit 레이어로 교체하고 가중치를 4비트로 변환해 GPU에 올립니다.
+    ##
+    ## 핵심은 "16비트로 전부 불러온 뒤에 압축"이 아니라 "레이어 단위로 읽으면서 바로 압축"이라는 점입니다.
+    ## 그래서 bf16으로는 못 올라가는 크기의 모델도 작은 GPU에 올릴 수 있습니다.
+    ##
+    ## 참고 1) 모든 레이어가 압축되는 건 아닙니다. 임베딩(nn.Embedding), LayerNorm, lm_head는
+    ##         정확도에 민감해서 양자화 대상에서 제외되고 16비트로 남습니다.
+    ## 참고 2) device_map을 따로 주지 않아도 됩니다. 4비트 모델은 CPU에 올릴 수 없기 때문에
+    ##         transformers가 자동으로 device_map={"": 현재 GPU}로 채워 줍니다.
+    ##         (transformers/quantizers/quantizer_bnb_4bit.py 의 update_device_map)
+    ## 참고 3) 여기서 지정하는 dtype은 "양자화되지 않고 남는 레이어들"의 자료형입니다.
+    ##         torch_dtype은 transformers 5.x에서 deprecated되어 dtype으로 이름이 바뀌었습니다.
+    ##         (현재는 "`torch_dtype` is deprecated! Use `dtype` instead!" 경고만 뜨고 동작합니다)
     model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=torch.bfloat16, quantization_config=bnb_config)
 
-    ## 모델을 4bit 학습을 위한 상태로 준비
+    ## ------------------------------------------------------------------
+    ## [3] 4비트 모델을 "학습이 가능한 상태"로 손질
+    ## ------------------------------------------------------------------
+    ## [prepare_model_for_kbit_training이 하는 일]  (k-bit = 4비트/8비트 같은 저비트를 뜻함)
+    ## 4비트로 압축된 모델을 그대로 학습시키면, 학습이 아예 안 되거나 매우 불안정합니다.
+    ## 이 함수가 그 문제들을 한 번에 정리해 줍니다. 실제로는 아래 4가지 작업을 합니다.
+    ## (peft/utils/other.py 의 prepare_model_for_kbit_training 참고)
+    ##
+    ##   (1) 원본 파라미터 전체를 얼린다 (모든 param.requires_grad = False)
+    ##       -> QLoRA의 전제가 "원본은 절대 건드리지 않는다"입니다. 4비트로 압축된 가중치는
+    ##          미세한 그래디언트를 더해도 반올림에 묻혀 사라지므로 애초에 학습이 불가능합니다.
+    ##
+    ##   (2) 양자화되지 않고 남은 레이어(LayerNorm, 임베딩, lm_head)를 float32로 올린다
+    ##       -> LayerNorm은 분산을 구하고 나눗셈을 하기 때문에 16비트에서는 값이 튀기 쉽습니다.
+    ##          이 부분만 32비트로 계산하면 loss가 훨씬 안정적으로 수렴합니다.
+    ##       -> 대가: 메모리를 약 0.9GB (임베딩 442M 이 16비트 -> 32비트, 이 모델은 lm_head가 임베딩과 공유됨) 더 씁니다. 안정성과의 교환입니다.
+    ##
+    ##   (3) 입력 임베딩의 출력에 requires_grad=True를 걸어준다 (enable_input_require_grads)
+    ##       -> 초보자가 가장 이해하기 어렵지만, 빠뜨리면 "학습이 아예 안 되는" 핵심 처리입니다.
+    ##          gradient checkpointing(중간 계산값을 버리고 역전파 때 재계산해 메모리를 아끼는 기법)은
+    ##          "그래디언트가 필요한 입력"이 들어와야 그 구간을 역전파 대상으로 인식합니다.
+    ##          그런데 QLoRA는 원본이 전부 얼려져 있어 임베딩 출력에 그래디언트 표시가 없고,
+    ##          그러면 체크포인팅 구간이 통째로 건너뛰어져 LoRA 가중치까지 그래디언트가 도달하지 못합니다.
+    ##          증상: loss가 전혀 줄지 않거나
+    ##               "element 0 of tensors does not require grad and does not have a grad_fn" 에러
+    ##
+    ##   (4) gradient checkpointing을 켠다 (model.gradient_checkpointing_enable())
+    ##       -> 아래 SFTConfig(gradient_checkpointing=True)와 중복이지만 두 번 켜도 문제는 없습니다.
+    ##
+    ## !! 순서 주의: 반드시 get_peft_model보다 "먼저" 호출해야 합니다.
+    ##    순서를 바꾸면 위 (1)이 방금 붙인 LoRA 가중치까지 얼려버려서 학습 대상 파라미터가 0개가 됩니다.
+    ##    (0개여도 에러 없이 학습이 "돌아가는 것처럼" 보이므로 알아채기 어렵습니다)
     model = prepare_model_for_kbit_training(model)
+
+    ## [get_peft_model이 하는 일]
+    ## 얼려진 원본 모델에 LoRA 어댑터를 덧붙여, PeftModel로 감싼 새 모델을 반환합니다.
+    ## 위에서 만든 peft_config(LoraConfig)의 target_modules에 적힌 레이어를 찾아
+    ## 원래 연산   y = W x   를
+    ## 다음과 같이 y = W x + (lora_alpha / r) * B(A x)   로 바꿔치기합니다.
+    ##   - W    : 4비트로 압축되어 얼려진 원본 가중치 (학습하지 않음)
+    ##   - A, B : 새로 추가된 작고 얇은 행렬 (오직 이것만 학습함)
+    ##
+    ## 주의: 이 함수는 model을 제자리에서 고치는 게 아니라 "감싼 새 객체"를 돌려주므로
+    ##       반드시 model = get_peft_model(...) 처럼 반환값을 다시 받아야 합니다.
+    ##
+    ## 학습 대상이 제대로 잡혔는지는 아래 한 줄로 꼭 확인해 보세요. 초보자가 가장 자주 틀리는 지점입니다.
+    ##   model.print_trainable_parameters()
+    ##   -> trainable params: 2,949,120 || all params: 4,078,829,056 || trainable%: 0.0723
+    ##   -> 여기서 trainable params가 0이면 위 "순서 주의"를 어긴 것입니다.
     model = get_peft_model(model, peft_config)
 else:
-    ## 맥북(mps)는 bitsandbytes를 지원하지 않음
+    ## ------------------------------------------------------------------
+    ## [맥북(MPS) / CPU] 일반 LoRA 경로 - 양자화 없이 bfloat16 원본 + LoRA
+    ## ------------------------------------------------------------------
+    ## 맥북(mps)는 bitsandbytes를 지원하지 않음 (CUDA 전용 라이브러리)
+    ##
+    ## 여기서는 get_peft_model을 호출하지 않고 "LoRA가 아직 붙지 않은 맨 모델"만 만들어 둡니다.
+    ## LoRA를 붙이는 일은 맨 아래 SFTTrainer(peft_config=peft_config)가 내부에서 대신 해 줍니다.
+    ## 양자화를 하지 않았으므로 prepare_model_for_kbit_training도 필요 없습니다.
+    ## (일반 LoRA는 원본이 16비트라 반올림에 그래디언트가 묻히는 문제가 없고,
+    ##  LoRA + gradient checkpointing 조합에 필요한 enable_input_require_grads()는
+    ##  TRL의 SFTTrainer가 알아서 호출해 줍니다)
     model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=torch.bfloat16) 
 
 ## 데이터의 최대 길이 제한
-max_seq_length=4096
+max_seq_length=8192
 
 ## 파인튜닝 설정
 ## SFTConfig = SFT(Supervised Fine-Tuning, 지도 파인튜닝) 학습에 쓰이는 "설정값 모음집"
@@ -306,12 +450,26 @@ args = SFTConfig(
     ##              아무 도구도 쓰지 않으려면 반드시 문자열 "none" 을 넣어야 함 (report_to="none")
     report_to="none",
 
-    # !! 설정되지 않은 중요 옵션: max_length (기본값 1024)
-    ## SFTConfig의 max_length는 학습 시 한 샘플의 최대 토큰 길이이며, 이보다 긴 문장은 뒤가 잘려나감
-    ## 이 데이터셋을 실제로 토크나이즈해보면 길이 중앙값 1563, 평균 1635, 최대 5907 토큰으로,
-    ## 991개 중 934개(94.2%)가 1024를 초과함 -> 기본값 그대로 두면 대부분의 샘플에서 정답(assistant 응답)이 통째로 잘림
-    ## 학습을 실제로 돌리기 전에 max_length=2048(84.7% 커버) 또는 4096(99.7% 커버) 지정을 권장
-    ## (단, 길이를 늘리면 GPU 메모리 사용량이 함께 늘어나므로 배치 크기와 함께 조절 필요)
+    # [설정하지 않은 옵션: max_length]  기본값 1024
+    ## SFTConfig의 max_length는 원래 "학습 시 한 샘플의 최대 토큰 길이"이며 이보다 긴 문장은 뒤가 잘려나갑니다.
+    ##
+    ## !! 다만 이 스크립트에서는 max_length가 아무 효과가 없습니다.
+    ##    바로 위에서 dataset_kwargs={"skip_prepare_dataset": True}로 TRL의 자동 전처리를 껐기 때문입니다.
+    ##    TRL은 잘라내기(truncation)를 "전처리 단계"에서 수행하는데, 그 단계 자체를 건너뛰므로
+    ##    max_length를 몇으로 주든 무시됩니다.
+    ##    (trl/trainer/sft_trainer.py 주석: "When preparation is skipped (`skip_prepare_dataset=True`),
+    ##     no truncation is applied and the dataset must already be truncated.")
+    ##
+    ## => 즉 이 스크립트에서 실제로 길이를 자르는 것은 위쪽에 정의한 max_seq_length 변수이고,
+    ##    그 값이 collate_fn 안의 tokenizer(truncation=True, max_length=max_seq_length)로 전달됩니다.
+    ##    길이를 조절하고 싶다면 여기가 아니라 max_seq_length를 수정해야 합니다.
+    ##
+    ## 참고) 이 데이터셋의 실제 토큰 길이 분포 (챗 템플릿 적용 후, 991개 기준)
+    ##       중앙값 1563 / 평균 1635 / 최대 5907
+    ##       1024 이하  57개 ( 5.8%)
+    ##       2048 이하 839개 (84.7%)
+    ##       4096 이하 988개 (99.7%)   <- 현재 max_seq_length=4096은 99.7%를 온전히 담음
+    ##       (길이를 늘리면 GPU 메모리 사용량이 함께 늘어나므로 배치 크기와 함께 조절 필요)
     # max_length=max_seq_length
 )
 
@@ -338,31 +496,55 @@ def _as_token_list(encoded):
 
 
 def tokenize_with_assistant_labels(messages):
+    ## [이 함수가 쓰는 트릭]
+    ## "정답이 어디서 시작하는지"를 문자열에서 찾는 대신, 같은 챗 템플릿을 두 번 적용해서 길이 차이로 알아냅니다.
+    ##   (A) 전체(system+user+assistant)를 토큰화        -> 학습에 넣을 input_ids
+    ##   (B) assistant를 뺀 뒤 add_generation_prompt=True -> "<|im_start|>assistant\n" 까지만 만들어진 프롬프트
+    ## (B)는 (A)의 앞부분과 정확히 일치하므로, len(B)가 곧 정답이 시작되는 위치가 됩니다.
+    ## 토큰 문자열을 직접 찾는(find) 방식보다 안전합니다. 모델마다 다른 제어 토큰 형식을 신경 쓸 필요가 없기 때문입니다.
     if not messages or messages[-1]["role"] != "assistant":
         raise ValueError("messages의 마지막 항목은 학습할 assistant 메시지여야 합니다.")
 
+    ## (A) 전체 대화를 토큰화 (이게 모델의 입력이 된다)
     encoded = tokenizer.apply_chat_template(
         messages,
         tokenize=True,
-        add_generation_prompt=False,
+        add_generation_prompt=False, # 이미 assistant 응답이 들어 있으므로 생성 프롬프트를 붙이지 않는다
         truncation=True,
         max_length=max_seq_length,
     )
     input_ids = _as_token_list(encoded)
 
+    ## (B) assistant를 뺀 프롬프트만 토큰화해서 "정답 시작 위치"를 구한다
     assistant_prefix_encoded = tokenizer.apply_chat_template(
         messages[:-1],
         tokenize=True,
-        add_generation_prompt=True,
+        add_generation_prompt=True, # "<|im_start|>assistant\n" 을 끝에 붙여 (A)의 앞부분과 형태를 일치시킨다
     )
     assistant_prefix_ids = _as_token_list(assistant_prefix_encoded)
 
+    ## 프롬프트 구간은 -100으로 덮어 loss 계산에서 제외하고, assistant 응답 구간만 정답으로 남긴다
     assistant_start = min(len(assistant_prefix_ids), len(input_ids))
     labels = [-100] * assistant_start + input_ids[assistant_start:]
 
+    ## !! [주의: 잘림으로 인한 NaN loss] 학습 전에 꼭 확인해야 하는 함정
+    ## 위 (A)는 max_length를 넘으면 "뒤에서부터" 잘립니다. 그런데 정답(assistant 응답)은 문장의 맨 뒤에 있으므로,
+    ## 프롬프트만으로 max_seq_length를 다 채우는 긴 샘플은 정답이 통째로 잘려 나갑니다.
+    ## 그 경우 assistant_start == len(input_ids) 가 되어 labels가 전부 -100이 되고,
+    ## 학습 대상 토큰이 0개인 샘플의 cross entropy는 nan이 되어 그 스텝에서 모델 가중치가 통째로 망가집니다.
+    ## (loss가 nan으로 찍히기 시작하면 그 이후 학습은 전부 무의미해집니다)
+    ##
+    ## 이 데이터셋의 토큰 길이 분포는 중앙값 1563 / 평균 1635 / 최대 5907 이고 max_seq_length=4096이므로,
+    ## 991개 중 3개(0.3%)가 잘림 대상입니다. 확률은 낮지만 한 번만 걸려도 학습이 무너지므로 방어가 필요합니다.
+    ## 아래 두 줄 중 하나를 넣어 두는 것을 권합니다.
+    ##   (a) 학습 전에 걸러내기 : 길이가 max_seq_length를 넘는 샘플을 데이터셋에서 미리 제외
+    ##   (b) 여기서 즉시 알아채기:
+    ##       if all(label == -100 for label in labels):
+    ##           raise ValueError("정답 구간이 잘려나가 학습 대상 토큰이 없습니다. max_seq_length를 늘리거나 이 샘플을 제외하세요.")
+
     return {
         "input_ids": input_ids,
-        "attention_mask": [1] * len(input_ids),
+        "attention_mask": [1] * len(input_ids), # 실제 토큰은 전부 1. 패딩(0)은 아래 collate_fn에서 붙는다
         "labels": labels,
     }
 
@@ -384,6 +566,20 @@ def collate_fn(batch):
         new_batch["labels"].append(tokenized["labels"])
 
     # 패딩 처리
+    ## 배치 안의 샘플들은 길이가 제각각인데, 텐서는 직사각형이어야 하므로 가장 긴 샘플에 맞춰 뒤를 채웁니다.
+    ## 세 배열을 서로 다른 값으로 채우는 이유를 구분해서 알아두면 좋습니다.
+    ##   input_ids      -> 패딩 토큰 id  : 자리를 채우기 위한 의미 없는 토큰
+    ##   attention_mask -> 0            : "이 위치는 무시하라"는 표시 (어텐션 계산에서 제외)
+    ##   labels         -> -100         : "이 위치는 채점하지 말라"는 표시 (loss 계산에서 제외)
+    ##                                    -100은 PyTorch CrossEntropyLoss의 ignore_index 기본값입니다.
+    ##
+    ## !! [알아두면 좋은 점] tokenizer.pad_token_id가 None인 모델이 꽤 많습니다.
+    ## 사전학습 전용 모델(base 모델)은 패딩을 쓸 일이 없어 pad_token이 정의되지 않은 경우가 많고,
+    ## 그러면 아래 extend에 None이 들어가 torch.tensor()에서 TypeError가 납니다.
+    ## 모델을 바꿀 때는 학습 전에 아래처럼 한 줄 방어해 두는 습관을 들이면 좋습니다.
+    ##   if tokenizer.pad_token_id is None:
+    ##       tokenizer.pad_token = tokenizer.eos_token
+    ## (지금 쓰는 Konan-LLM-OND의 pad_token_id는 172728(<|endoftext|>)로 설정되어 있음이므로 이 스크립트에서는 문제가 없습니다)
     max_length = max(len(ids) for ids in new_batch["input_ids"])
     for i in range(len(new_batch["input_ids"])):
         pad_len = max_length - len(new_batch["input_ids"][i])
@@ -466,18 +662,74 @@ print("\n=============================================")
 
 ######################################################################
 # 모델 학습
+
+# ==========================================================================================
+# [중요] QLoRA는 왜 SFTTrainer에 peft_config를 넘기지 않는가?
+#
+# 결론부터 말하면 "LoRA를 붙이는 주체가 둘 중 하나여야 하고, 둘이 겹치면 TRL이 에러를 낸다" 입니다.
+#
+# ── SFTTrainer가 peft_config를 받으면 무슨 일을 하는가 ──────────────────────────────
+#   SFTTrainer는 peft_config를 받으면 "아직 LoRA가 안 붙은 맨 모델이 들어왔구나"라고 판단하고,
+#   생성자 안에서 우리 대신 get_peft_model(model, peft_config)를 호출해 모델을 PeftModel로 감쌉니다.
+#   즉 peft_config를 넘기는 것은 get_peft_model 호출을 TRL에게 위임하는 것과 같습니다.
+#   (trl/trainer/sft_trainer.py 의 "# PEFT" 블록)
+#
+# ── 그런데 QLoRA 분기에서는 이미 우리가 직접 붙여 놨다 ─────────────────────────────
+#   위쪽 CUDA 분기에서 model = get_peft_model(model, peft_config) 를 이미 호출했기 때문에,
+#   지금 model 변수에 담긴 것은 평범한 모델이 아니라 이미 LoRA가 붙어 있는 PeftModel입니다.
+#   여기에 peft_config까지 같이 넘기면 LoRA 위에 LoRA를 또 얹는 이중 적용이 되어버립니다.
+#   그러면 학습된 어댑터가 어느 층에 속하는지 알 수 없고 저장/병합도 깨지므로,
+#   TRL은 이 상황을 아예 막아두고 아래 에러를 냅니다. (사용자가 만난 그 에러입니다)
+#
+#     ValueError: You passed a `PeftModel` instance together with a `peft_config` to the trainer.
+#                 Please first merge and unload the existing adapter, save the resulting base model,
+#                 and then pass that base model along with the new `peft_config` to the trainer.
+#
+#     (해석: "이미 LoRA가 붙은 모델과 peft_config를 같이 줬다. 새 LoRA를 붙이고 싶다면
+#            기존 어댑터를 원본에 병합(merge)하고 떼어낸(unload) 뒤 그 모델을 넘겨라")
+#
+# ── 정리: 둘 중 하나만 선택한다 ─────────────────────────────────────────────────
+#   방식 A (QLoRA / 이 if 분기)
+#       내가 직접 prepare_model_for_kbit_training -> get_peft_model 을 호출한다
+#       => SFTTrainer에는 peft_config를 넘기지 않는다
+#   방식 B (일반 LoRA / 아래 else 분기)
+#       get_peft_model을 호출하지 않고 맨 모델만 만든다
+#       => SFTTrainer에 peft_config를 넘겨서 TRL이 붙이게 한다
+#
+# ── QLoRA가 굳이 번거로운 방식 A를 쓰는 이유 ───────────────────────────────────
+#   LoRA를 붙이기 "전에" 반드시 prepare_model_for_kbit_training이 끼어들어야 하는데
+#   (그래야 원본 동결 / LayerNorm fp32 승격 / 입력 그래디언트 활성화가 이뤄짐),
+#   SFTTrainer는 이 함수를 대신 호출해 주지 않습니다. 그래서 4비트 준비 과정을 우리가 직접
+#   처리해야 하고, 그 과정에서 get_peft_model까지 직접 호출하게 되는 것입니다.
+#
+#   참고) 그 외의 QLoRA 부가 처리는 TRL이 알아서 해 줍니다. 이미 PeftModel을 넘겨받은 경우에도
+#         - LoRA + gradient_checkpointing 조합에 필요한 enable_input_require_grads() 호출
+#         - QLoRA 논문 권고에 따라 LoRA 가중치를 bfloat16으로 캐스팅
+#         두 가지를 내부에서 수행하므로 우리가 추가로 손댈 것은 없습니다.
+# ==========================================================================================
+#
+# [참고] 위쪽에서 데이터를 8:2로 나눠 test_dataset(198개)을 만들어 뒀지만 아래 SFTTrainer에는
+#        전달하지 않아서 지금은 사용되지 않습니다. 학습 중에 "처음 보는 데이터에서의 성능"을
+#        같이 보고 싶다면 두 SFTTrainer 호출에 아래를 추가하면 됩니다.
+#          eval_dataset=test_dataset,
+#        그리고 SFTConfig에 eval_strategy="steps", eval_steps=50 을 함께 넣어야 실제로 평가가 돌아갑니다.
+#        (학습 loss만 보면 "외운 것"과 "배운 것"을 구분할 수 없습니다. 학습 loss는 내려가는데
+#         평가 loss가 올라가기 시작하는 지점이 바로 과적합이 시작된 시점입니다.)
 if torch.cuda.is_available():
-    # QLoRA 적용할 경우
+    # QLoRA 적용할 경우 (peft_config를 넘기지 않는다 - 위 설명 참고)
     trainer = SFTTrainer(
-        model=model,
+        model=model, # 이미 4비트 양자화 + LoRA가 적용된 PeftModel
         args=args, # SFTConfig
         train_dataset=train_dataset,
-        data_collator=collate_fn
+        data_collator=collate_fn # 직접 만든 전처리 함수 (SFTConfig의 skip_prepare_dataset=True와 짝을 이룸)
+        # peft_config=peft_config  <- 이 줄을 살리면 위에서 설명한 ValueError가 발생한다
     )
 else:
     # 일반 LoRA 적용할 경우, peft_config를 명시적으로 넘김
+    ## 위 else 분기에서 get_peft_model을 호출하지 않았으므로, LoRA를 붙이는 일을 SFTTrainer에게 맡긴다.
+    ## SFTTrainer가 생성자 안에서 get_peft_model(model, peft_config)를 호출해 PeftModel로 감싼 뒤 학습을 시작한다.
     trainer = SFTTrainer(
-        model=model,
+        model=model, # 아직 LoRA가 붙지 않은 맨 bfloat16 모델
         args=args, # SFTConfig
         train_dataset=train_dataset,
         data_collator=collate_fn,
@@ -485,9 +737,21 @@ else:
     )
 
 # 학습 시작
-trainer.train() # 모델이 자동으로 허브와 output_dir에 저장됨
+## push_to_hub=False이므로 실제로는 허브가 아니라 output_dir(로컬)에만 저장된다.
+## save_strategy="steps" + save_steps=50 설정에 따라 50 step마다 output_dir/checkpoint-50, -100 ... 이 쌓인다.
+trainer.train() # 모델이 자동으로 output_dir에 저장됨 (push_to_hub=True로 바꾸면 허브에도 업로드)
 
 # 모델 저장
-trainer.save_model() # 최종 모델을 저장
+## [초보자 주의] LoRA/QLoRA로 학습한 경우 여기 저장되는 것은 "원본 모델 전체"가 아니라
+## LoRA 어댑터 가중치(adapter_model.safetensors)와 설정(adapter_config.json)뿐입니다. 보통 수 MB~수십 MB.
+## 그래서 나중에 추론할 때는 "원본 모델을 먼저 불러오고 그 위에 어댑터를 얹는" 2단계가 필요합니다.
+##   from peft import PeftModel
+##   base  = AutoModelForCausalLM.from_pretrained(model_id, dtype=torch.bfloat16)
+##   model = PeftModel.from_pretrained(base, "<output_dir>")
+##   model = model.merge_and_unload()  # (선택) 어댑터를 원본에 합쳐 일반 모델처럼 만들기
+##
+## 참고) QLoRA로 학습한 어댑터를 4비트가 아닌 원본(bf16) 위에 얹어 추론하는 것도 가능합니다.
+##       다만 학습은 4비트 원본을 기준으로 이뤄졌으므로 결과가 미세하게 달라질 수 있습니다.
+trainer.save_model() # 최종 모델(어댑터)을 저장
 
 print("\n=============================================")
