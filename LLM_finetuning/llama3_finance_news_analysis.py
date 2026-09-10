@@ -198,7 +198,7 @@ else:
     model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=torch.bfloat16) 
 
 ## 데이터의 최대 길이 제한
-max_seq_length=8192
+max_seq_length=4096
 
 ## 파인튜닝 설정
 ## SFTConfig = SFT(Supervised Fine-Tuning, 지도 파인튜닝) 학습에 쓰이는 "설정값 모음집"
@@ -562,7 +562,7 @@ else:
 trainer.train() # 모델이 자동으로 허브와 output_dir에 저장됨
 
 # 모델 저장
-#trainer.save_model() # 최종 모델을 저장
+trainer.save_model() # 최종 모델을 저장
 
 print("\n=============================================")
 
