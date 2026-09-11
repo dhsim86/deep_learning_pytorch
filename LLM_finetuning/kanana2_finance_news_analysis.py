@@ -941,7 +941,7 @@ else:
 # 학습 시작
 ## push_to_hub=False이므로 실제로는 허브가 아니라 output_dir(로컬)에만 저장된다.
 ## save_strategy="steps" + save_steps=50 설정에 따라 50 step마다 output_dir/checkpoint-50, -100 ... 이 쌓인다.
-trainer.train() # 모델이 자동으로 output_dir에 저장됨 (push_to_hub=True로 바꾸면 허브에도 업로드)
+# trainer.train() # 모델이 자동으로 output_dir에 저장됨 (push_to_hub=True로 바꾸면 허브에도 업로드)
 
 # 모델 저장
 ## [초보자 주의] LoRA/QLoRA로 학습한 경우 여기 저장되는 것은 "원본 모델 전체"가 아니라
@@ -954,6 +954,92 @@ trainer.train() # 모델이 자동으로 output_dir에 저장됨 (push_to_hub=Tr
 ##
 ## 참고) QLoRA로 학습한 어댑터를 4비트가 아닌 원본(bf16) 위에 얹어 추론하는 것도 가능합니다.
 ##       다만 학습은 4비트 원본을 기준으로 이뤄졌으므로 결과가 미세하게 달라질 수 있습니다.
-trainer.save_model() # 최종 모델(어댑터)을 저장
+# trainer.save_model() # 최종 모델(어댑터)을 저장
 
 print("\n=============================================")
+
+######################################################################
+# 평가 준비 (테스트 데이터)
+
+prompt_lst = []
+label_lst = []
+
+for messages in test_dataset["messages"]:
+    text = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=False)
+
+    ## 입력: "시스템 + 유저 프롬프트 + generation_prompt" 로 구성된 챗 템플릿 형태로 준비
+    input = text.split('<|im_start|>assistant\n<think>\n\n</think>\n\n')[0] + '<|im_start|>assistant\n<think>\n\n</think>\n\n'
+
+    ## 라벨 (모델 응답 준비)
+    label = text.split('<|im_start|>assistant\n<think>\n\n</think>\n\n')[1].split('<|im_end|>')[0]
+    prompt_lst.append(input)
+    label_lst.append(label)
+
+print("----prompt_lst[0]----")
+print(prompt_lst[0])
+print("----label_lst[0]----")
+print(label_lst[0])
+
+print("\n=============================================")
+
+######################################################################
+# 모델 테스트
+from transformers import pipeline
+
+eos_token = tokenizer("<|im_end|>", add_special_tokens=False)["input_ids"][0]
+
+## 추론 메서드 정의
+def test_inference(pipe, prompt):
+    # 추론시 eos_token 지정
+    outputs = pipe(prompt, max_new_tokens=1024, eos_token_id=eos_token, do_sample=False)
+    return outputs[0]['generated_text'][len(prompt):].strip()
+
+## 파인튜닝하지 않은 베이스 모델에 대해 먼저 테스트
+
+print("\n=============================================")
+print("베이스 모델 추론")
+base_model_id = model_id
+base_model = AutoModelForCausalLM.from_pretrained(
+    base_model_id,
+    torch_dtype=torch.float16 if use_mps else torch.bfloat16, # CPU로 떨어지면 기존대로 bfloat16
+    attn_implementation="sdpa",
+    trust_remote_code=True,
+)
+pipe = pipeline("text-generation", model=model, tokenizer=tokenizer)
+
+# response:
+# {"is_stock_related": True,
+# "positive_impact_stocks": ["애플", "마이크로소프트", "엔비디아", "TSMC", "구글"],
+# "reason_for_positive_impact": "글로벌 스마트폰 시장 침체 우려에도 불구하고, 애플과 마이크로소프트, 엔비디아, TSMC 등 주요 기술기업들이 긍정적인 영향을 받을 것으로 전망됩니다.",
+# "positive_keywords": ["기술혁신", "반도체", "AI", "소프트웨어", "클라우드"],
+# "negative_impact_st걸": [],
+# "reason_for_negative_impact": "",
+# "negative_keywords": [],
+# "summary": "글로벌 스마트폰 시장 침체 우려에도 불구하고, 애플과 마이크로소프트, 엔비디아 등 주요 기술기업들이 긍정적인 영향을 받을 것으로 전망된다."}
+
+# label:
+# {'is_stock_related': True, 
+#  'negative_impact_stocks': ['애플', '엔비디아', 'TSMC', '텐센트', '바이트댄스'], 
+#  'negative_keywords': ['스마트폰 판매 감소', '인력 감축', '비용 절감', '경제 둔화'], 
+#  'positive_impact_stocks': [], 
+#  'positive_keywords': [], 
+#  'reason_for_negative_impact': '가트너의 보고서에 따르면 스마트폰 판매량의 감소는 애플과 같은 제조업체뿐만 아니라 엔비디아와 TSMC 같은 반도체 업체에게 부정적인 영향을 미칠 것으로 보입니다. 또한, 텐센트와 바이트댄스가 인력을 추가 감원할 계획을 발표함에 따라 이들의 주가에 부정적인 영향이 예상됩니다.', 
+#  'reason_for_positive_impact': '', 'summary': '가트너는 올해 전세계 스마트폰 판매량이 7% 감소할 것이라고 전망하며, 애플과 반도체 업체들이 영향을 받을 것으로 보입니다. 한편, 텐센트와 바이트댄스는 하반기 대규모 감원을 계획하고 있어, 글로벌 빅테크 기업들이 경제 둔화와 비용 절감 압박에 직면하고 있습니다.'
+# }
+for prompt, label in zip(prompt_lst[10:15], label_lst[10:15]):
+    print(f" response:\n{test_inference(pipe, prompt)}")
+    print(f" label:\n{label}")
+    print("-"*50)
+
+## 파인 튜닝한 모델에 대한 테스트
+from peft import AutoPeftModelForCausalLM
+
+### AutoPeftModelForCausalLM에 LoRA Adapter가 저장된 체크포인트의 주소를 지정하면, LoRA Adapter가 기존 LLM에 부착되어 로딩됨
+peft_model_id = "llama3-8b-summarizer-ko/checkpoint-372"
+fine_tuned_model = AutoPeftModelForCausalLM.from_pretrained(
+    peft_model_id,
+    torch_dtype=torch.float16 if use_mps else torch.bfloat16, # CPU로 떨어지면 기존대로 bfloat16
+    attn_implementation="sdpa",
+    trust_remote_code=True,
+)
+pipe = pipeline("text-generation", model=fine_tuned_model, tokenizer=tokenizer)

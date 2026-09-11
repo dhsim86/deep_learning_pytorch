@@ -988,3 +988,22 @@ print("\n=============================================")
 #     8B는 맥북에서 학습하기에 무거운 크기이며, 위 최적화를 다 해도 시간 단위의 학습을 피할 수 없습니다.
 #   - 8B를 반드시 써야 한다면 클라우드 GPU를 쓰는 편이 현실적입니다. (A100 기준 20~30분 수준)
 ######################################################################
+
+######################################################################
+# 평가 준비 (테스트 데이터)
+
+## 시스템 + 유저 프롬프트 + generation_prompt 를 같은 챗 템플릿 형태로 테스트 데이터 준비
+prompt_lst = []
+label_lst = []
+
+for messages in test_dataset["messages"]:
+    text = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=False)
+    input = text.split('<|start_header_id|>assistant<|end_header_id|>\n')[0] + '<|start_header_id|>assistant<|end_header_id|>\n'
+    label = text.split('<|start_header_id|>assistant<|end_header_id|>\n')[1].split('<|eot_id|>')[0]
+    prompt_lst.append(input)
+    label_lst.append(label)
+
+print("----prompt_lst[0]----")
+print(prompt_lst[0])
+print("----label_lst[0]----")
+print(label_lst[0])
