@@ -107,6 +107,8 @@ print("\n=============================================")
 
 ######################################################################
 # 챗 템플릿 적용 테스트
+## LLM은 사전학습시 특정 챗 템플릿 형식에 맞추어 학습된 상태이므로, 파인 튜닝할 때도 이를 지켜야 한다.
+## 토크나이저의 apply_chat_template 메서드로, OpenAI 형식으로 가공된 데이터를 특정 모델의 챗 템플릿으로 변환 가능
 
 ## 사용할 허깅페이스의 모델 ID
 model_id = "NCSOFT/Llama-VARCO-8B-Instruct" # Meta-Llama-3.1-8B 모델을 한국어 성능에 특화되도록 추가학습된 모델
@@ -118,8 +120,7 @@ tokenizer = AutoTokenizer.from_pretrained(model_id)
 # <|begin_of_text|>
 # <|start_header_id|>system<|end_header_id|>시스템 프롬프트<|eot_id|>
 # <|start_header_id|>user<|end_header_id|>유저 프롬프트<|eot_id|>
-# <|start_header_id|>assistant<|end_header_id|>거대 언어 모델이 해야하는 답변
-# <|eot_id|>
+# <|start_header_id|>assistant<|end_header_id|>거대 언어 모델이 해야하는 답변<|eot_id|>
 
 ## 인코딩 OFF / 생성 프롬프트 OFF
 text = tokenizer.apply_chat_template(train_dataset[0]["messages"], tokenize=False, add_generation_prompt=False)
