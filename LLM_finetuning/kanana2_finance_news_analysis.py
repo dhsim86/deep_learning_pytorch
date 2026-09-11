@@ -296,6 +296,10 @@ text = tokenizer.apply_chat_template(train_dataset[0]["messages"], tokenize=Fals
 # CEO포커스 임기 초년 나희승 코레일 사장 꼴찌 성적표 받자마자 열차 사고까지
 # 나희승 한국철도공사 사장. 사진 한국철도공사 제공 지난해 공공기관 경영평가에서 한국철도공사 코레일 가 36개 공기업 가운데 유일하게 E등급 을 맞으며 꼴찌라는 불명예를 얻게 됐다. 이번 경영평가에서 국토교통부 산하 공공기관 가운데 성적이 낮은 곳은 E등급인 코레일뿐만이 아니었다. 코레일이 최하 점수를 받은 이유로는 지속적으로 발생한 안전사고가 지목된다. 코레일은 재난·안전관리 분야에서 최하등급을 받았다. 특히 나희승 56·사진 코레일 사장에게 이번 평가는 더욱 뼈아프게 다가올 수밖에 없다. 올 1월에 발생한 부산행 KTX 탈선 사고는 지난해 11월 취임한 나 사장의 임기 중에 발생했다. 나 사장이 책임에서 자유롭지 못하다는 뜻이다. 이런 상황에 지난 1일 수서고속철도 SRT 탈선 사고가 또 발생해 코레일의 안전관리 체계 자체에 문제가 있는 것이 아니냐는 우려가 나온다. 원희룡 국토교통부 장관은 코레일의 안전관리 체계의 근본적인 점검을 지시한 상태다. 나 사장 전임이던 손병석 전 사장의 경우 2020년 경영평가에서 경영관리 부문 E등급을 받자 스스로 자리를 내려놨다. 당시 코레일 전체 등급은 C등급이었음에도 손 사장은 책임을 지고 물러났다. 공공기관 경영평가 등급은 성과급 기준이 돼 당시 내부에서 불만의 목소리가 나오면서 압박도 커진 것으로 알려졌다. 일각에서는 나 사장이 친야권 인사로 분류돼 새 정부의 평가에 영향을 준 것이 아니냐는 의구심도 제기되는 상황이다. 이전 정부에서 여당이던 더불어민주당은 철도 핵심정책인 남북철도 등 업무를 수행할 적임자로 나 사장을 지목한 바 있다. 나 사장은 철도 연구자로 잘 알려졌다. 나 사장은 2019년부터 민주평화통일자문회의 경제협력분과위원회 상임위원을 맡는 등 민주당 측과 가까운 인사로 분류되는 게 사실이다. 임기가 2024년 11월까지 2년 이상 남은 나 사장이 이번 난관을 어떻게 극복할지 관심이 집중된다.<|im_end|>
 # <|im_start|>assistant
+# <think>
+#
+# </think>
+#
 # {'is_stock_related': False, 'negative_impact_stocks': None, 'negative_keywords': None, 'positive_impact_stocks': None, 'positive_keywords': None, 'reason_for_negative_impact': None, 'reason_for_positive_impact': None, 'summary': '나희승 코레일 사장이 임기 초반에 안전사고와 관련하여 코레일이 공공기관 경영평가에서 최하등급을 받았다는 뉴스입니다. 나 사장의 안전 관리 체계에 대한 책임론이 대두되고 있으며, 이는 그의 정치적 배경과도 관련이 있다는 분석이 제기되고 있는 상황입니다.'}<|im_end|>
 print(text)
 
@@ -941,7 +945,7 @@ else:
 # 학습 시작
 ## push_to_hub=False이므로 실제로는 허브가 아니라 output_dir(로컬)에만 저장된다.
 ## save_strategy="steps" + save_steps=50 설정에 따라 50 step마다 output_dir/checkpoint-50, -100 ... 이 쌓인다.
-# trainer.train() # 모델이 자동으로 output_dir에 저장됨 (push_to_hub=True로 바꾸면 허브에도 업로드)
+trainer.train() # 모델이 자동으로 output_dir에 저장됨 (push_to_hub=True로 바꾸면 허브에도 업로드)
 
 # 모델 저장
 ## [초보자 주의] LoRA/QLoRA로 학습한 경우 여기 저장되는 것은 "원본 모델 전체"가 아니라
@@ -954,12 +958,33 @@ else:
 ##
 ## 참고) QLoRA로 학습한 어댑터를 4비트가 아닌 원본(bf16) 위에 얹어 추론하는 것도 가능합니다.
 ##       다만 학습은 4비트 원본을 기준으로 이뤄졌으므로 결과가 미세하게 달라질 수 있습니다.
-# trainer.save_model() # 최종 모델(어댑터)을 저장
+trainer.save_model() # 최종 모델(어댑터)을 저장
 
 print("\n=============================================")
 
 ######################################################################
 # 평가 준비 (테스트 데이터)
+#
+# 맨 위에서 8:2로 나눠둔 test_dataset(198개)은 학습에 한 번도 쓰지 않은 데이터입니다.
+# 이걸로 "파인튜닝 전(베이스) 모델"과 "파인튜닝 후 모델"의 출력을 나란히 비교합니다.
+#
+# 필요한 것은 두 가지입니다.
+#   prompt_lst : 시스템 + 유저 프롬프트 + 생성 프롬프트(모델이 이어서 쓸 시작점)  -> 모델 입력
+#   label_lst  : 정답 assistant 응답                                             -> 비교 기준
+#
+# [중요] 추론 프롬프트는 학습 때 쓴 형식과 한 글자도 달라서는 안 됩니다.
+#        위쪽 학습 코드(tokenize_with_assistant_labels)가 apply_chat_template 을 썼으므로,
+#        여기서도 같은 apply_chat_template 결과를 잘라서 씁니다.
+#
+# kanana-2 의 챗 템플릿은 마지막 assistant 턴을 이렇게 만듭니다. (헤더 주석 2번 참고)
+#   <|im_start|>assistant\n<think>\n\n</think>\n\n{모델 응답}<|im_end|>\n
+# 그래서 아래 ASSISTANT_HEADER 를 경계로 자르면 왼쪽이 입력, 오른쪽이 정답이 됩니다.
+#
+# [주의] thinking 모드를 끈 상태를 뜻하는 빈 <think>\n\n</think> 블록까지가 "생성 프롬프트"입니다.
+#        이 블록을 빼고 <|im_start|>assistant\n 까지만 주면 모델이 <think> 를 직접 쓰기 시작해서
+#        학습한 형식과 어긋납니다. 반드시 블록까지 포함시켜야 합니다.
+ASSISTANT_HEADER = "<|im_start|>assistant\n<think>\n\n</think>\n\n"
+RESPONSE_END = "<|im_end|>" # kanana-2 의 턴 종료 토큰 (= tokenizer.eos_token, id 128010)
 
 prompt_lst = []
 label_lst = []
@@ -967,13 +992,15 @@ label_lst = []
 for messages in test_dataset["messages"]:
     text = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=False)
 
-    ## 입력: "시스템 + 유저 프롬프트 + generation_prompt" 로 구성된 챗 템플릿 형태로 준비
-    input = text.split('<|im_start|>assistant\n<think>\n\n</think>\n\n')[0] + '<|im_start|>assistant\n<think>\n\n</think>\n\n'
+    ## assistant 헤더를 경계로 두 조각으로 나눈다 (assistant 턴이 1개뿐이므로 항상 정확히 2조각)
+    before_assistant, after_assistant = text.split(ASSISTANT_HEADER)
 
-    ## 라벨 (모델 응답 준비)
-    label = text.split('<|im_start|>assistant\n<think>\n\n</think>\n\n')[1].split('<|im_end|>')[0]
-    prompt_lst.append(input)
-    label_lst.append(label)
+    ## 입력: 시스템 + 유저 프롬프트 + 생성 프롬프트
+    ##       split 하면 경계 문자열 자체는 사라지므로 다시 붙여줘야 한다
+    prompt_lst.append(before_assistant + ASSISTANT_HEADER)
+
+    ## 정답: 모델 응답 본문만 (뒤에 붙은 <|im_end|> 와 줄바꿈은 잘라낸다)
+    label_lst.append(after_assistant.split(RESPONSE_END)[0])
 
 print("----prompt_lst[0]----")
 print(prompt_lst[0])
@@ -983,30 +1010,70 @@ print(label_lst[0])
 print("\n=============================================")
 
 ######################################################################
-# 모델 테스트
+# 추론 함수 정의
 from transformers import pipeline
 
-eos_token = tokenizer("<|im_end|>", add_special_tokens=False)["input_ids"][0]
+## 생성을 멈출 토큰 id
+## kanana-2 는 tokenizer.eos_token 이 <|im_end|> 이고 generation_config 의 eos_token_id 도 128010 이라
+## 사실 생략해도 멈추지만, 모델을 바꿨을 때 "끝없이 생성되는" 사고를 막기 위해 명시합니다.
+eos_token = tokenizer(RESPONSE_END, add_special_tokens=False)["input_ids"][0] # 128010
 
 ## 추론 메서드 정의
 def test_inference(pipe, prompt):
-    # 추론시 eos_token 지정
-    outputs = pipe(prompt, max_new_tokens=1024, eos_token_id=eos_token, do_sample=False)
-    return outputs[0]['generated_text'][len(prompt):].strip()
+    outputs = pipe(
+        prompt,
+        max_new_tokens=1024,                 # 정답 응답이 길어도 잘리지 않을 만큼
+        eos_token_id=eos_token,              # 이 토큰이 나오면 생성 중단
+        pad_token_id=tokenizer.pad_token_id, # 지정 안 하면 경고가 뜬다 (배치 1이라 실제 패딩은 없음)
+        do_sample=False,                     # 그리디 디코딩. 매번 같은 결과가 나와야 두 모델을 비교할 수 있다
+        add_special_tokens=False,            # [중요] 아래 설명 참고
+        return_full_text=False,              # 프롬프트를 뺀 "새로 생성된 텍스트"만 받는다
+    )
+    return outputs[0]["generated_text"].strip()
 
-## 파인튜닝하지 않은 베이스 모델에 대해 먼저 테스트
+## [중요] add_special_tokens=False 를 왜 주는가
+##   prompt 문자열에는 <|im_start|> / <|im_end|> / <think> 같은 제어 토큰이 이미 다 들어 있습니다.
+##   그런데 kanana-2 토크나이저는 기본값(add_special_tokens=True)에서 문장 맨 앞에
+##   <|begin_of_text|>(128000) 를 하나 더 붙입니다. 실측하면 이렇게 갈립니다.
+##     tokenizer(prompt)                        -> [128000, 128009, ...]  <- BOS 가 붙음
+##     tokenizer(prompt, add_special_tokens=False) -> [128009, ...]       <- 학습 때와 동일
+##   학습은 apply_chat_template 결과를 그대로 썼고 그 안에는 BOS 가 없으므로,
+##   추론에서 BOS 가 붙으면 "학습한 입력 != 추론 입력" 이 되어 출력 품질이 떨어집니다.
+##   (Konan-LLM-OND / Llama-VARCO 토크나이저는 BOS 를 자동으로 붙이지 않아 차이가 없지만,
+##    프롬프트에 제어 토큰을 직접 넣는 경우에는 항상 False 로 두는 습관이 안전합니다)
 
 print("\n=============================================")
-print("베이스 모델 추론")
-base_model_id = model_id
+
+######################################################################
+# 베이스 모델 vs 파인튜닝 모델 비교
+
+## 먼저 학습에 쓴 모델을 메모리에서 내린다.
+## LoRA가 붙은 학습용 모델이 그대로 남아 있으면, 아래에서 추론용 모델을 또 올리며 메모리를 두 배로 쓴다.
+import gc
+
+del trainer, model
+gc.collect()
+if torch.cuda.is_available():
+    torch.cuda.empty_cache()
+elif use_mps:
+    torch.mps.empty_cache()
+
+print("\n=============================================")
+print("베이스 모델 추론 (파인튜닝 전)")
+
+## 학습에 쓴 것과 같은 설정으로 원본 모델을 다시 불러온다
 base_model = AutoModelForCausalLM.from_pretrained(
-    base_model_id,
+    model_id,
     torch_dtype=torch.float16 if use_mps else torch.bfloat16, # CPU로 떨어지면 기존대로 bfloat16
     attn_implementation="sdpa",
     trust_remote_code=True,
 )
-pipe = pipeline("text-generation", model=model, tokenizer=tokenizer)
+## device를 지정하지 않으면 pipeline이 사용 가능한 가속기(MPS/CUDA)를 스스로 골라 모델을 옮긴다
+pipe = pipeline("text-generation", model=base_model, tokenizer=tokenizer)
 
+## 베이스 모델은 이 작업을 학습한 적이 없으므로 시스템 프롬프트의 지시를 어림짐작으로 따라갑니다.
+## 보통 아래처럼 "dictionary 비슷한 것"은 나오지만, 키 이름이 깨지거나(negative_impact_st걸)
+## 근거 없는 종목이 채워지는 등 파싱이 실패하는 출력이 섞여 나옵니다.
 # response:
 # {"is_stock_related": True,
 # "positive_impact_stocks": ["애플", "마이크로소프트", "엔비디아", "TSMC", "구글"],
@@ -1031,15 +1098,35 @@ for prompt, label in zip(prompt_lst[10:15], label_lst[10:15]):
     print(f" label:\n{label}")
     print("-"*50)
 
-## 파인 튜닝한 모델에 대한 테스트
-from peft import AutoPeftModelForCausalLM
+print("\n=============================================")
+print("파인튜닝 모델 추론 (LoRA 어댑터 부착)")
 
-### AutoPeftModelForCausalLM에 LoRA Adapter가 저장된 체크포인트의 주소를 지정하면, LoRA Adapter가 기존 LLM에 부착되어 로딩됨
-peft_model_id = "llama3-8b-summarizer-ko/checkpoint-372"
-fine_tuned_model = AutoPeftModelForCausalLM.from_pretrained(
-    peft_model_id,
-    torch_dtype=torch.float16 if use_mps else torch.bfloat16, # CPU로 떨어지면 기존대로 bfloat16
-    attn_implementation="sdpa",
-    trust_remote_code=True,
-)
+from peft import PeftModel
+
+## trainer.save_model() 이 최종 어댑터를 저장한 위치 = SFTConfig(output_dir=...) 와 같다.
+## 중간 체크포인트로 비교하고 싶으면 "kanana2-1.3b-summarizer-ko/checkpoint-500" 처럼 지정하면 된다.
+## (save_steps=50 이고 총 step 은 793 x 3 / 4 = 약 594 이므로 checkpoint-50 ~ -550 이 쌓인다)
+peft_model_id = "kanana2-1.3b-summarizer-ko"
+
+## [주의] PeftModel.from_pretrained 는 위에서 만든 base_model 안에 LoRA 층을 직접 끼워 넣는다.
+##        즉 이 줄 이후의 base_model 은 더 이상 "베이스 모델"이 아니다.
+##        그래서 베이스 모델 추론을 반드시 먼저 끝내야 한다.
+##        대신 2.6GB 원본 가중치를 두 번 읽지 않으므로 로딩 시간과 메모리를 아낄 수 있다.
+##
+##        원본을 한 번 더 읽어도 상관없다면 아래 두 줄로 대체할 수 있다. (베이스와 완전히 분리됨)
+##          from peft import AutoPeftModelForCausalLM
+##          fine_tuned_model = AutoPeftModelForCausalLM.from_pretrained(
+##              peft_model_id,
+##              torch_dtype=torch.float16 if use_mps else torch.bfloat16,
+##              attn_implementation="sdpa",
+##              trust_remote_code=True,
+##          )
+fine_tuned_model = PeftModel.from_pretrained(base_model, peft_model_id)
 pipe = pipeline("text-generation", model=fine_tuned_model, tokenizer=tokenizer)
+
+## 파인튜닝 모델은 학습 데이터의 형식(파이썬 dict 문자열, 키 8개)을 그대로 따라가는 것이 정상입니다.
+## 종목명이나 요약 내용이 정답과 완전히 같지는 않아도, "형식이 깨지지 않는다"는 점이 가장 큰 차이입니다.
+for prompt, label in zip(prompt_lst[10:15], label_lst[10:15]):
+    print(f" response:\n{test_inference(pipe, prompt)}")
+    print(f" label:\n{label}")
+    print("-"*50)

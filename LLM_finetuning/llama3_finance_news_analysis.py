@@ -991,19 +991,159 @@ print("\n=============================================")
 
 ######################################################################
 # 평가 준비 (테스트 데이터)
+#
+# 맨 위에서 8:2로 나눠둔 test_dataset(198개)은 학습에 한 번도 쓰지 않은 데이터입니다.
+# 이걸로 "파인튜닝 전(베이스) 모델"과 "파인튜닝 후 모델"의 출력을 나란히 비교합니다.
+#
+# 필요한 것은 두 가지입니다.
+#   prompt_lst : 시스템 + 유저 프롬프트 + 생성 프롬프트(모델이 이어서 쓸 시작점)  -> 모델 입력
+#   label_lst  : 정답 assistant 응답                                             -> 비교 기준
+#
+# ==========================================================================================
+# [중요] 이 파일은 왜 apply_chat_template 을 쓰지 않고 프롬프트를 직접 조립하는가
+#
+# 추론 프롬프트는 "학습 때 쓴 형식"과 한 글자도 달라서는 안 됩니다.
+# 그런데 위쪽 collate_fn 은 (알아두면 좋은 점 1 참고) 헤더 뒤 줄바꿈을 한 번만 넣는
+# 비공식 형식으로 학습 데이터를 만들었습니다.
+#
+#   collate_fn(학습)                  : <|start_header_id|>assistant<|end_header_id|>\n{내용}<|eot_id|>
+#   apply_chat_template(공식)         : <|start_header_id|>assistant<|end_header_id|>\n\n{내용}<|eot_id|>
+#
+# 여기서 apply_chat_template 을 쓰면 \n 이 하나 더 들어가 "학습한 형식 != 추론 형식" 이 되고,
+# 파인튜닝 모델이 손해를 봅니다. 그래서 아래 build_chat_text 로 학습과 똑같이 조립합니다.
+# (베이스 모델 입장에서는 반대로 \n 이 하나 부족한 셈이지만, 두 모델을 같은 프롬프트로
+#  비교하는 것이 공정하고, 학습된 쪽 형식을 맞춰주는 것이 이 실험의 목적에 부합합니다)
+#
+# 애초에 학습 코드에서 apply_chat_template 을 썼다면 이 고민 자체가 없습니다.
+# 같은 폴더의 qwen3 / kanana2 파일은 그렇게 바꾼 버전이므로 비교해 보세요.
+#
+# 또 하나, VARCO(Llama-3 계열)의 챗 템플릿은 add_generation_prompt=False 를 줘도
+# 맨 끝에 <|start_header_id|>assistant<|end_header_id|>\n\n 를 무조건 한 번 더 붙입니다.
+# (위쪽 "챗 템플릿 적용 테스트" 출력의 마지막 줄이 그것입니다)
+# 그래서 apply_chat_template 결과를 assistant 헤더로 split 하면 조각이 2개가 아니라 3개로 나옵니다.
+# 직접 조립하면 이런 모델별 함정도 함께 피할 수 있습니다.
+# ==========================================================================================
 
-## 시스템 + 유저 프롬프트 + generation_prompt 를 같은 챗 템플릿 형태로 테스트 데이터 준비
+ASSISTANT_HEADER = "<|start_header_id|>assistant<|end_header_id|>\n"
+RESPONSE_END = "<|eot_id|>" # Llama-3 의 턴 종료 토큰 (id 128009)
+
+## 위 collate_fn 과 완전히 동일한 규칙으로 챗 템플릿을 조립한다
+def build_chat_text(messages):
+    text = "<|begin_of_text|>"
+    for msg in messages:
+        text += f"<|start_header_id|>{msg['role']}<|end_header_id|>\n{msg['content'].strip()}<|eot_id|>"
+    return text
+
 prompt_lst = []
 label_lst = []
 
 for messages in test_dataset["messages"]:
-    text = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=False)
-    input = text.split('<|start_header_id|>assistant<|end_header_id|>\n')[0] + '<|start_header_id|>assistant<|end_header_id|>\n'
-    label = text.split('<|start_header_id|>assistant<|end_header_id|>\n')[1].split('<|eot_id|>')[0]
-    prompt_lst.append(input)
-    label_lst.append(label)
+    text = build_chat_text(messages)
+
+    ## assistant 헤더를 경계로 두 조각으로 나눈다 (assistant 턴이 1개뿐이므로 항상 정확히 2조각)
+    before_assistant, after_assistant = text.split(ASSISTANT_HEADER)
+
+    ## 입력: 시스템 + 유저 프롬프트 + 생성 프롬프트
+    ##       split 하면 경계 문자열 자체는 사라지므로 다시 붙여줘야 한다
+    prompt_lst.append(before_assistant + ASSISTANT_HEADER)
+
+    ## 정답: 모델 응답 본문만 (뒤에 붙은 <|eot_id|> 는 잘라낸다)
+    label_lst.append(after_assistant.split(RESPONSE_END)[0])
 
 print("----prompt_lst[0]----")
 print(prompt_lst[0])
 print("----label_lst[0]----")
 print(label_lst[0])
+
+print("\n=============================================")
+
+######################################################################
+# 추론 함수 정의
+from transformers import pipeline
+
+## 생성을 멈출 토큰 id
+##
+## [중요] 이 모델에서는 eos_token_id 를 반드시 직접 넘겨야 합니다.
+##        Llama-3 계열은 "텍스트의 끝"과 "대화 턴의 끝"을 다른 토큰으로 구분하는데,
+##        VARCO 의 config.json 에는 전자만 등록돼 있습니다.
+##          config.eos_token_id = 128001 (<|end_of_text|>)   <- generate 가 기본으로 보는 값
+##          챗 템플릿의 턴 종료  = 128009 (<|eot_id|>)        <- 우리가 학습시킨 종료 토큰
+##        그대로 두면 모델이 <|eot_id|> 를 뱉어도 멈추지 않고 max_new_tokens 까지
+##        다음 턴을 혼자 지어내며 계속 생성합니다.
+##        (tokenizer.eos_token 은 <|eot_id|> 로 올바르게 지정되어 있어 값이 서로 어긋나 있습니다)
+eos_token = tokenizer(RESPONSE_END, add_special_tokens=False)["input_ids"][0] # 128009
+
+## 추론 메서드 정의
+def test_inference(pipe, prompt):
+    outputs = pipe(
+        prompt,
+        max_new_tokens=1024,                 # 정답 응답이 길어도 잘리지 않을 만큼
+        eos_token_id=eos_token,              # 이 토큰이 나오면 생성 중단 (위 설명 참고)
+        pad_token_id=tokenizer.pad_token_id, # 지정 안 하면 경고가 뜬다 (배치 1이라 실제 패딩은 없음)
+        do_sample=False,                     # 그리디 디코딩. 매번 같은 결과가 나와야 두 모델을 비교할 수 있다
+        add_special_tokens=False,            # 프롬프트에 <|begin_of_text|> 가 이미 있으므로 BOS 를 또 붙이지 않게 한다
+        return_full_text=False,              # 프롬프트를 뺀 "새로 생성된 텍스트"만 받는다
+    )
+    return outputs[0]["generated_text"].strip()
+
+print("\n=============================================")
+
+######################################################################
+# 베이스 모델 vs 파인튜닝 모델 비교
+
+## 먼저 학습에 쓴 모델을 메모리에서 내린다.
+## [맥북에서는 필수] 이 모델은 8B(bf16으로 약 16GB)라서, 학습용 모델을 내리지 않고
+## 추론용 모델을 또 올리면 32GB가 되어 통합 메모리가 스왑으로 넘어가거나 그대로 죽습니다.
+import gc
+
+del trainer, model
+gc.collect()
+if torch.cuda.is_available():
+    torch.cuda.empty_cache()
+elif torch.backends.mps.is_available():
+    torch.mps.empty_cache()
+
+print("\n=============================================")
+print("베이스 모델 추론 (파인튜닝 전)")
+
+## 학습에 쓴 것과 같은 설정으로 원본 모델을 다시 불러온다
+base_model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=torch.bfloat16)
+
+## device를 지정하지 않으면 pipeline이 사용 가능한 가속기(MPS/CUDA)를 스스로 골라 모델을 옮긴다
+pipe = pipeline("text-generation", model=base_model, tokenizer=tokenizer)
+
+## 베이스 모델은 이 작업을 학습한 적이 없으므로 시스템 프롬프트의 지시를 어림짐작으로 따라갑니다.
+## "dictionary 비슷한 것"은 나오지만 키 이름이 빠지거나, 지시사항 문구를 그대로 베껴 쓰거나,
+## 근거 없는 종목이 채워지는 등 파싱이 실패하는 출력이 섞여 나오는 것이 정상입니다.
+for prompt, label in zip(prompt_lst[10:15], label_lst[10:15]):
+    print(f" response:\n{test_inference(pipe, prompt)}")
+    print(f" label:\n{label}")
+    print("-"*50)
+
+print("\n=============================================")
+print("파인튜닝 모델 추론 (LoRA 어댑터 부착)")
+
+from peft import PeftModel
+
+## trainer.save_model() 이 최종 어댑터를 저장한 위치 = SFTConfig(output_dir=...) 와 같다.
+## 중간 체크포인트로 비교하고 싶으면 "llama3-8b-summarizer-ko/checkpoint-500" 처럼 지정하면 된다.
+## (save_steps=50 이고 총 step 은 793 x 3 / 4 = 약 594 이므로 checkpoint-50 ~ -550 이 쌓인다)
+peft_model_id = "llama3-8b-summarizer-ko"
+
+## [주의] PeftModel.from_pretrained 는 위에서 만든 base_model 안에 LoRA 층을 직접 끼워 넣는다.
+##        즉 이 줄 이후의 base_model 은 더 이상 "베이스 모델"이 아니다.
+##        그래서 베이스 모델 추론을 반드시 먼저 끝내야 한다.
+##        대신 16GB 원본 가중치를 두 번 읽지 않으므로, 8B 모델에서는 이 방식이 사실상 필수다.
+##
+##        (메모리가 넉넉하다면 아래 두 줄로 베이스와 완전히 분리된 모델을 만들 수도 있다)
+##          from peft import AutoPeftModelForCausalLM
+##          fine_tuned_model = AutoPeftModelForCausalLM.from_pretrained(peft_model_id, torch_dtype=torch.bfloat16)
+fine_tuned_model = PeftModel.from_pretrained(base_model, peft_model_id)
+pipe = pipeline("text-generation", model=fine_tuned_model, tokenizer=tokenizer)
+
+## 파인튜닝 모델은 학습 데이터의 형식(파이썬 dict 문자열, 키 8개)을 그대로 따라가는 것이 정상입니다.
+## 종목명이나 요약 내용이 정답과 완전히 같지는 않아도, "형식이 깨지지 않는다"는 점이 가장 큰 차이입니다.
+for prompt, label in zip(prompt_lst[10:15], label_lst[10:15]):
+    print(f" response:\n{test_inference(pipe, prompt)}")
+    print(f" label:\n{label}")
+    print("-"*50)

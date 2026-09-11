@@ -757,3 +757,136 @@ trainer.train() # 모델이 자동으로 output_dir에 저장됨 (push_to_hub=Tr
 trainer.save_model() # 최종 모델(어댑터)을 저장
 
 print("\n=============================================")
+
+######################################################################
+# 평가 준비 (테스트 데이터)
+#
+# 맨 위에서 8:2로 나눠둔 test_dataset(198개)은 학습에 한 번도 쓰지 않은 데이터입니다.
+# 이걸로 "파인튜닝 전(베이스) 모델"과 "파인튜닝 후 모델"의 출력을 나란히 비교합니다.
+#
+# 필요한 것은 두 가지입니다.
+#   prompt_lst : 시스템 + 유저 프롬프트 + 생성 프롬프트(모델이 이어서 쓸 시작점)  -> 모델 입력
+#   label_lst  : 정답 assistant 응답                                             -> 비교 기준
+#
+# [중요] 추론 프롬프트는 학습 때 쓴 형식과 한 글자도 달라서는 안 됩니다.
+#        위쪽 학습 코드(tokenize_with_assistant_labels)가 apply_chat_template 을 썼으므로,
+#        여기서도 같은 apply_chat_template 결과를 잘라서 씁니다.
+#
+# Konan-LLM-OND 는 Qwen3 기반이라 ChatML 형식을 그대로 씁니다.
+#   <|im_start|>system\n{시스템 프롬프트}<|im_end|>\n
+#   <|im_start|>user\n{유저 프롬프트}<|im_end|>\n
+#   <|im_start|>assistant\n{모델 응답}<|im_end|>\n
+# 그래서 아래 ASSISTANT_HEADER 를 경계로 자르면 왼쪽이 입력, 오른쪽이 정답이 됩니다.
+#
+# [참고] 같은 폴더의 kanana2_finance_news_analysis.py 는 assistant 헤더 뒤에
+#        빈 추론 블록(<think>\n\n</think>\n\n)이 하나 더 붙습니다. 이렇게 모델마다 형식이 다르므로
+#        경계 문자열은 반드시 apply_chat_template 출력을 직접 찍어보고 정해야 합니다.
+ASSISTANT_HEADER = "<|im_start|>assistant\n"
+RESPONSE_END = "<|im_end|>" # 턴 종료 토큰 (= tokenizer.eos_token, id 172730)
+
+prompt_lst = []
+label_lst = []
+
+for messages in test_dataset["messages"]:
+    text = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=False)
+
+    ## assistant 헤더를 경계로 두 조각으로 나눈다 (assistant 턴이 1개뿐이므로 항상 정확히 2조각)
+    before_assistant, after_assistant = text.split(ASSISTANT_HEADER)
+
+    ## 입력: 시스템 + 유저 프롬프트 + 생성 프롬프트
+    ##       split 하면 경계 문자열 자체는 사라지므로 다시 붙여줘야 한다
+    prompt_lst.append(before_assistant + ASSISTANT_HEADER)
+
+    ## 정답: 모델 응답 본문만 (뒤에 붙은 <|im_end|> 와 줄바꿈은 잘라낸다)
+    label_lst.append(after_assistant.split(RESPONSE_END)[0])
+
+print("----prompt_lst[0]----")
+print(prompt_lst[0])
+print("----label_lst[0]----")
+print(label_lst[0])
+
+print("\n=============================================")
+
+######################################################################
+# 추론 함수 정의
+from transformers import pipeline
+
+## 생성을 멈출 토큰 id
+## 이 모델은 generation_config 의 eos_token_id 가 [172730, 172728] = [<|im_end|>, <|endoftext|>] 로
+## 두 개 지정돼 있습니다. 우리가 학습시킨 종료 토큰은 <|im_end|> 하나이므로 그것만 명시합니다.
+eos_token = tokenizer(RESPONSE_END, add_special_tokens=False)["input_ids"][0] # 172730
+
+## 추론 메서드 정의
+def test_inference(pipe, prompt):
+    outputs = pipe(
+        prompt,
+        max_new_tokens=1024,                 # 정답 응답이 길어도 잘리지 않을 만큼
+        eos_token_id=eos_token,              # 이 토큰이 나오면 생성 중단
+        pad_token_id=tokenizer.pad_token_id, # 지정 안 하면 경고가 뜬다 (배치 1이라 실제 패딩은 없음)
+        do_sample=False,                     # 그리디 디코딩. 매번 같은 결과가 나와야 두 모델을 비교할 수 있다
+        add_special_tokens=False,            # 프롬프트에 제어 토큰이 이미 다 들어있으므로 토크나이저가 더 붙이지 않게 한다
+        return_full_text=False,              # 프롬프트를 뺀 "새로 생성된 텍스트"만 받는다
+    )
+    return outputs[0]["generated_text"].strip()
+
+print("\n=============================================")
+
+######################################################################
+# 베이스 모델 vs 파인튜닝 모델 비교
+
+## 먼저 학습에 쓴 모델을 메모리에서 내린다.
+## LoRA가 붙은 학습용 모델(4.08B, bf16으로 8.2GB)이 그대로 남아 있으면
+## 아래에서 추론용 모델을 또 올리며 메모리를 두 배로 쓴다.
+import gc
+
+del trainer, model
+gc.collect()
+if torch.cuda.is_available():
+    torch.cuda.empty_cache()
+elif torch.backends.mps.is_available():
+    torch.mps.empty_cache()
+
+print("\n=============================================")
+print("베이스 모델 추론 (파인튜닝 전)")
+
+## 학습에 쓴 것과 같은 설정으로 원본 모델을 다시 불러온다
+base_model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=torch.bfloat16)
+
+## device를 지정하지 않으면 pipeline이 사용 가능한 가속기(MPS/CUDA)를 스스로 골라 모델을 옮긴다
+pipe = pipeline("text-generation", model=base_model, tokenizer=tokenizer)
+
+## 베이스 모델은 이 작업을 학습한 적이 없으므로 시스템 프롬프트의 지시를 어림짐작으로 따라갑니다.
+## "dictionary 비슷한 것"은 나오지만 키 이름이 빠지거나, 지시사항 문구를 그대로 베껴 쓰거나,
+## 근거 없는 종목이 채워지는 등 파싱이 실패하는 출력이 섞여 나오는 것이 정상입니다.
+for prompt, label in zip(prompt_lst[10:15], label_lst[10:15]):
+    print(f" response:\n{test_inference(pipe, prompt)}")
+    print(f" label:\n{label}")
+    print("-"*50)
+
+print("\n=============================================")
+print("파인튜닝 모델 추론 (LoRA 어댑터 부착)")
+
+from peft import PeftModel
+
+## trainer.save_model() 이 최종 어댑터를 저장한 위치 = SFTConfig(output_dir=...) 와 같다.
+## 중간 체크포인트로 비교하고 싶으면 "konan-llm-ond-summarizer-ko/checkpoint-500" 처럼 지정하면 된다.
+## (save_steps=50 이고 총 step 은 793 x 3 / 4 = 약 594 이므로 checkpoint-50 ~ -550 이 쌓인다)
+peft_model_id = "konan-llm-ond-summarizer-ko"
+
+## [주의] PeftModel.from_pretrained 는 위에서 만든 base_model 안에 LoRA 층을 직접 끼워 넣는다.
+##        즉 이 줄 이후의 base_model 은 더 이상 "베이스 모델"이 아니다.
+##        그래서 베이스 모델 추론을 반드시 먼저 끝내야 한다.
+##        대신 8.2GB 원본 가중치를 두 번 읽지 않으므로 로딩 시간과 메모리를 아낄 수 있다.
+##
+##        원본을 한 번 더 읽어도 상관없다면 아래 두 줄로 대체할 수 있다. (베이스와 완전히 분리됨)
+##          from peft import AutoPeftModelForCausalLM
+##          fine_tuned_model = AutoPeftModelForCausalLM.from_pretrained(peft_model_id, torch_dtype=torch.bfloat16)
+fine_tuned_model = PeftModel.from_pretrained(base_model, peft_model_id)
+pipe = pipeline("text-generation", model=fine_tuned_model, tokenizer=tokenizer)
+
+## 파인튜닝 모델은 학습 데이터의 형식(파이썬 dict 문자열, 키 8개)을 그대로 따라가는 것이 정상입니다.
+## 종목명이나 요약 내용이 정답과 완전히 같지는 않아도, "형식이 깨지지 않는다"는 점이 가장 큰 차이입니다.
+for prompt, label in zip(prompt_lst[10:15], label_lst[10:15]):
+    print(f" response:\n{test_inference(pipe, prompt)}")
+    print(f" label:\n{label}")
+    print("-"*50)
