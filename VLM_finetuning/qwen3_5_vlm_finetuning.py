@@ -145,5 +145,7 @@ def format_data(sample):
 
 ## 패션 이미지 데이터셋, 패션 제품의 이미지와 다양한 속성 정보를 포함
 dataset = load_dataset("ashraq/fashion-product-images-small", split="train")
+
+## combine_cols_to_label를 전체 데이터셋에 적용하여 JSON 형태의 레이블을 추가
 dataset_add_label = dataset.map(combine_cols_to_label)
 dataset_add_label = dataset_add_label.shuffle(seed=4242)
