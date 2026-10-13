@@ -123,3 +123,63 @@ print(tokenizer.decode(generated_ids, skip_special_tokens=False, clean_up_tokeni
 # 대한민국의 수도는 서울입니다.
 print("\n모델 응답:")
 print(tokenizer.decode(generated_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False))
+
+print("\n=============================================")
+
+######################################################################
+# 4. 위 1~3 단계를 한 번에: 허깅페이스 pipeline
+
+## pipeline("text-generation") 은 위에서 손으로 한 과정을 내부에서 그대로 수행한다.
+## (transformers 5.14.1 의 pipelines/text_generation.py 소스와 공식 문서 "Chat basics" / "Chat templates" 로 확인)
+##
+##   [입력 판별] messages 처럼 {"role", "content"} 딕셔너리의 리스트가 들어오면 "대화(Chat)"로 인식한다
+##   [1. 템플릿] tokenizer.apply_chat_template(messages, add_generation_prompt=True, tokenize=True) 호출
+##               -> 템플릿 문자열을 거치지 않고 바로 토큰화하므로 BOS 가 중복으로 붙지 않는다
+##                  (실측: pipeline 내부 input_ids 가 위 2단계의 add_special_tokens=False 결과와 완전히 동일)
+##   [2~3. 생성] model.generate(...) 호출. 멈추는 토큰은 모델의 generation_config 를 따른다
+##   [후처리]    새로 생성된 토큰만 디코딩(skip_special_tokens=True)해서 assistant 메시지로 대화 끝에 붙여 돌려준다
+##
+## 즉 "챗 템플릿을 손으로 변환하지 않아도 되는 것"이지, 템플릿이 없어지는 것이 아니다.
+## 내부에서는 위 1단계와 똑같은 kanana-2 템플릿(<think> 블록 포함)이 적용된 입력이 모델에 들어간다.
+##
+## [pipeline 이 대신해 주지 않는 것]
+##   - 종료 토큰 : generation_config 를 그대로 쓰므로, HyperCLOVAX 는 pipeline 으로 돌려도
+##                 "<|im_end|><|endofturn|><|endofturn|>..." 로 멈추지 않는다 (실측). eos_token_id 는 여전히 직접 줘야 한다.
+##   - 문자열 입력 : 리스트가 아니라 문자열을 넣으면 대화가 아닌 "이어 쓸 글"로 보고 템플릿을 적용하지 않는다.
+##                 pipe("대한민국의 수도는 어디야?") 로 넣으면 질문에 답하지 않고 글을 이어 써 버린다 (실측).
+##                 이미 템플릿을 적용한 문자열을 넣을 때는 kanana-2 토크나이저가 BOS 를 붙이므로
+##                 add_special_tokens=False 를 직접 줘야 한다 (RAG_finetuning/kanana2_tuned_model_test.py 의 방식).
+from transformers import pipeline
+
+## 모델 ID 만 주면 토크나이저 / 모델 로드까지 pipeline 이 해 준다.
+##   - trust_remote_code=True : 위 from_pretrained 와 같은 이유로 필요 (없으면 ValueError)
+##   - device_map="auto"      : 쓸 수 있는 가장 빠른 장치에 자동 배치 (이 맥북에서는 mps)
+## (이미 불러온 객체를 재사용하려면 pipeline("text-generation", model=model, tokenizer=tokenizer) 처럼 넘겨도 된다)
+pipe = pipeline(
+    "text-generation",
+    model=model_id,
+    dtype=torch.bfloat16,
+    device_map="auto",
+    trust_remote_code=True,
+)
+
+## 위에서 정의한 messages 를 템플릿 변환 없이 그대로 넣는다
+## 템플릿 옵션은 tokenizer_encode_kwargs 로 apply_chat_template 에 전달된다 (예: tokenizer_encode_kwargs={"thinking_mode": "think"})
+outputs = pipe(
+    messages,
+    max_new_tokens=256,
+    do_sample=False, # 위 3단계와 같은 조건 (그리디 디코딩)
+)
+
+## generated_text 에는 "입력 대화 + 새 assistant 메시지" 전체가 리스트로 들어 있다
+## (응답 문자열만 받고 싶으면 return_full_text=False)
+# [{'role': 'system', 'content': '당신은 친절한 AI 어시스턴트입니다. 질문에 간결하게 답변하세요.'},
+#  {'role': 'user', 'content': '대한민국의 수도는 어디야?'},
+#  {'role': 'assistant', 'content': '대한민국의 수도는 서울입니다.'}]
+print("pipeline 출력:")
+print(outputs[0]["generated_text"])
+
+## 마지막 메시지가 모델의 응답 (위 3단계의 결과와 같다)
+# 대한민국의 수도는 서울입니다.
+print("\npipeline 응답:")
+print(outputs[0]["generated_text"][-1]["content"])
