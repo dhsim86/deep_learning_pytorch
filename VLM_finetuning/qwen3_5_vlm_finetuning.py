@@ -340,3 +340,63 @@ args = SFTConfig(
     dataset_kwargs={"skip_prepare_dataset": True},
     report_to=None
 )
+
+######################################################################
+# 학습시 데이터 전처리 함수 (SFTTrainer의 data_collator) 정의
+def collate_fn(examples):
+    """
+    텍스트와 이미지가 포함된 대화 데이터를 모델 학습에 적합한 형태로 변환하는 함수
+    Args:
+        examples: 각각 "messages" 키를 가진 딕셔너리들의 리스트
+            messages는 role(system/user/assistant)과 content를 포함하는 대화 형태
+    Returns:
+        batch: 모델 학습에 사용할 수 있는 토큰화된 텍스트, 이미지, 라벨이 포함된 배치
+    """
+    # 1단계: 텍스트 전처리 - 채팅 템플릿 적용
+    # 각 예제의 messages를 모델 고유의 채팅 형식으로 변환
+    # 모델마다 다른 특수 토큰과 형식을 사용 (예: <|im_start|>, <|system|> 등)
+    texts = [processor.apply_chat_template(example["messages"], tokenize=False) for example in examples]
+
+    # 2단 계: 이미지 데이터 추출 및 전처리
+    # messages에서 이미지 정보를 추출하여 모델이 처리할 수 있는 형태로 변환
+    # process_vision_info()는 messages에서 이미지를 찾아 적절한 형태로 변환해주는 함수
+    image_inputs = [process_vision_info(example["messages"])[0] for example in examples]
+
+    # 3단계: 텍스트 토크나이징 + 이미지 인코딩
+    # 텍스트를 토큰으로 변환하고 이미지를 인코딩하여 하나의 배치로 묶음
+    # return_tensors="pt": PyTorch 텐서 형태로 반환
+    # padding=True: 배치 내 모든 시퀀스를 같은 길이로 맞춤 (짧은 것은 패딩 토큰으로 채움)
+    batch = processor(text=texts, images=image_inputs, return_tensors="pt", padding=True)
+
+    # 4단계: 라벨 생성 (손실 계산용)
+    # input_ids를 복사하여 라벨로 사용 (다음 토큰 예측 학습을 위함)
+    labels = batch["input_ids"].clone()
+
+    # 5단계: 패딩 토큰 손실 계산에서 제외
+    # 패딩된 부분은 실제 데이터가 아니므로 손실 계산에서 제외
+    # -100으로 설정하면 CrossEntropyLoss에서 자동으로 무시됨
+    labels[labels == processor.tokenizer.pad_token_id] = -100
+
+    # 6단계: 이미지 토큰 손실 계산에서 제외
+    # 이미지 토큰은 예측 대상이 아니므로 손실 계산에서 제외
+    if isinstance(processor, Qwen3VLProcessor):
+        # Qwen2VL 모델에서 사용하는 특수 이미지 토큰들의 ID
+        # - 151652: 이미지 시작 토큰, <|vision_start|>
+        # - 151653: 이미지 종료 토큰, <|vision_end|>
+        # - 151655: 이미지 패치 토큰, <|image_pad|>
+        # image_tokens = [151652, 151653, 151655]
+        # Qwen/Qwen3.5-2B에서의 토큰 ID
+        image_tokens = [248053, 248054, 248056]
+    else:
+        # 다른 비전-언어 모델의 이미지 토큰 ID 추출
+        image_tokens = [processor.tokenizer.convert_tokens_to_ids(processor.image_token)]
+
+    # 이미지 토큰들을 손실 계산에서 제외 (-100으로 설정)
+    for image_token_id in image_tokens:
+        labels[labels == image_token_id] = -100
+
+    # 7단계: 최종 배치에 라벨 추가
+    # 모델 학습시 손실 계산에 사용될 라벨을 배치에 추가
+    batch["labels"] = labels
+    
+    return batch
