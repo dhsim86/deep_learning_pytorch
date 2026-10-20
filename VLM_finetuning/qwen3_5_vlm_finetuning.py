@@ -384,6 +384,8 @@ def collate_fn(examples):
         # - 151652: 이미지 시작 토큰, <|vision_start|>
         # - 151653: 이미지 종료 토큰, <|vision_end|>
         # - 151655: 이미지 패치 토큰, <|image_pad|>
+        #   - 입력된 이미지의 시각적 특징(Visual Features)이 텍스트 모델 내부에서 자리 잡을 공간을 확보하기 위해 사용하는 특수 패딩 토큰(Place-holder Token)
+        #   - 이미지 패치(Patch)가 들어갈 자리 표시
         # image_tokens = [151652, 151653, 151655]
         # Qwen/Qwen3.5-2B에서의 토큰 ID
         image_tokens = [248053, 248054, 248056]
