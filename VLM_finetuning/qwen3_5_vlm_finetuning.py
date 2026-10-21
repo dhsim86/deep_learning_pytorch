@@ -503,3 +503,21 @@ decoded_text = processor.tokenizer.decode(batch["input_ids"][0])
 print("\n디코딩된 텍스트:")
 print(decoded_text)
 
+print("\n=============================================")
+
+######################################################################
+# 모델 학습
+
+trainer = SFTTrainer(
+    model=model,
+    args=args,
+    train_dataset=train_dataset,
+    data_collator=collate_fn,
+    peft_config=peft_config,
+    tokenizer=processor.tokenizer
+)
+
+## 학습 시작
+trainer.train() # 모델이 자동으로 허브와 output_dir에 저장됨
+## 모델 저장
+trainer.save_model() # 최종 모델을 저장
