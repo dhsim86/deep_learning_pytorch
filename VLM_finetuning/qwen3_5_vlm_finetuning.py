@@ -359,13 +359,33 @@ def collate_fn(examples):
 
     # 2단 계: 이미지 데이터 추출 및 전처리
     # messages에서 이미지 정보를 추출하여 모델이 처리할 수 있는 형태로 변환
-    # process_vision_info()는 messages에서 이미지를 찾아 적절한 형태로 변환해주는 함수
+    # process_vision_info()는 messages에서 이미지나 비디오 정보를 찾아 적절한 형태로 변환해주는, Qwen 유틸리티 함수
+    #   - 입력 처리: 로컬 파일 경로, HTTP URL, Base64 인코딩 데이터, PIL 이미지 등 다양한 형식의 이미지와 비디오 입력을 파싱
+    #   - 전처리 연동: 크기 조정(smart_resize), 프레임 추출(fps 설정) 등을 거쳐 transformers의 AutoProcessor에 전달할 수 있는 image_inputs와 video_inputs 형태로 변환
+    # =============================================
+    # 예시
+    # from qwen_vl_utils import process_vision_info
+    #
+    # 1. 메시지 구조에서 이미지/비디오 데이터 추출
+    # image_inputs, video_inputs = process_vision_info(messages)
+    #
+    # 2. 프로세서에 전달
+    # inputs = processor(
+    #     text=[text],
+    #     images=image_inputs,
+    #     videos=video_inputs,
+    #     padding=True,
+    #     return_tensors="pt",
+    # )
+    # =============================================
     image_inputs = [process_vision_info(example["messages"])[0] for example in examples]
 
     # 3단계: 텍스트 토크나이징 + 이미지 인코딩
     # 텍스트를 토큰으로 변환하고 이미지를 인코딩하여 하나의 배치로 묶음
     # return_tensors="pt": PyTorch 텐서 형태로 반환
     # padding=True: 배치 내 모든 시퀀스를 같은 길이로 맞춤 (짧은 것은 패딩 토큰으로 채움)
+    # -> 처리 후 pixel_values에 process_vision_info가 추출하고 전처리한 이미지 픽셀 데이터(고차원 텐서)가 들어간다.
+    # -> input_ids에는 순수한 텍스트 토큰 ID만 들어가고, 이미지가 위치했던 자리에는 <|image_pad|>와 같은 특수 토큰 ID만 있다.
     batch = processor(text=texts, images=image_inputs, return_tensors="pt", padding=True)
 
     # 4단계: 라벨 생성 (손실 계산용)
@@ -402,3 +422,84 @@ def collate_fn(examples):
     batch["labels"] = labels
     
     return batch
+
+## 전처리 결과 확인
+example = train_dataset[0] # 데이터셋의 첫번째 샘플
+print("첫 번째 샘플 데이터:")
+print(example)
+
+## collate_fn 테스트 (배치 크기 1로)
+batch = collate_fn([example])
+
+# {'messages': [{'role': 'system', 'content': [{'type': 'text', 'text': '당신은 이미지와 제품명(name)으로부터 패션/스타일 정보를 추론하는 분류 모델입니다.'}]}, {'role': 'user', 'content': [{'type': 'text', 'text': '입력 정보:\n- name: Proline Men Blue Shorts\n- image: [image]\n\n위 정보를 바탕으로, 아래 7가지 key에 대한 값을 JSON 형태로 추론해 주세요:\n1) gender\n2) masterCategory\n3) subCategory\n4) season\n5) usage\n6) baseColour\n7) articleType\n\n출력시 **아래 JSON 예시 형태**를 반드시 지키세요:\n{\n  "gender": "예시값",\n  "masterCategory": "예시값",\n  "subCategory": "예시값",\n  "season": "예시값",\n  "usage": "예시값",\n  "baseColour": "예시값",\n  "articleType": "예시값"\n}\n\n# 예시\n{\n  "gender": "Men",\n  "masterCategory": "Accessories",\n  "subCategory": "Eyewear",\n  "season": "Winter",\n  "usage": "Casual",\n  "baseColour": "Blue",\n  "articleType": "Sunglasses"\n}\n\n# 주의\n- 7개 항목 이외의 정보(텍스트, 문장 등)는 절대 포함하지 마세요.\n'}, {'type': 'image', 'image': <PIL.PngImagePlugin.PngImageFile image mode=RGB size=60x80 at 0x3D9A24B90>}]}, {'role': 'assistant', 'content': [{'type': 'text', 'text': '{"gender": "Men", "masterCategory": "Apparel", "subCategory": "Bottomwear", "season": "Fall", "usage": "Casual", "baseColour": "Blue", "articleType": "Shorts"}'}]}]}
+print("\n처리된 배치 데이터:")
+print("입력 ID 형태:", batch["input_ids"].shape) # torch.Size([1, 431]) # 텍스트는 431 토큰으로 변환됨
+print("어텐션 마스크 형태:", batch["attention_mask"].shape) # torch.Size([1, 431])
+print("이미지 픽셀 형태:", batch["pixel_values"].shape) # torch.Size([280, 1536]), 이미지는 280x1536 형태의 픽셀값으로 인코딩
+print("레이블 형태:", batch["labels"].shape) # torch.Size([1, 431])
+
+# tensor([248045,   8678,    198,  62602,  79683,  32587, 185238,  77792, 151564,
+#          76887,   3052,      8, 187094, 207028,     14, 160743,  31020, 176435,
+#          55895, 150868,  41486, 184844, 160610, 151396,     13, 248046,    198,
+#         248045,    846,    198,  42415,  27813,  58012,     25,    198,     12,
+# ...
+print('입력에 대한 정수 인코딩 결과:')
+print(batch["input_ids"][0])
+
+## 이미지 특수 토큰들이 -100으로 치환된 것 빼고는 동일
+## -> Notion의 스크린샷 참조
+print('레이블에 대한 정수 인코딩 결과:')
+print(batch["labels"][0])
+
+## 토큰 디코딩 예시 (입력 텍스트가 어떻게 변환 되었는지 확인)
+# <|im_start|>system
+# 당신은 이미지와 제품명(name)으로부터 패션/스타일 정보를 추론하는 분류 모델입니다.<|im_end|>
+# <|im_start|>user
+# 입력 정보:
+# - name: Proline Men Blue Shorts
+# - image: [image]
+# 
+# 위 정보를 바탕으로, 아래 7가지 key에 대한 값을 JSON 형태로 추론해 주세요:
+# 1) gender
+# 2) masterCategory
+# 3) subCategory
+# 4) season
+# 5) usage
+# 6) baseColour
+# 7) articleType
+# 
+# 출력시 **아래 JSON 예시 형태**를 반드시 지키세요:
+# {
+#   "gender": "예시값",
+#   "masterCategory": "예시값",
+#   "subCategory": "예시값",
+#   "season": "예시값",
+#   "usage": "예시값",
+#   "baseColour": "예시값",
+#   "articleType": "예시값"
+# }
+# 
+# # 예시
+# {
+#   "gender": "Men",
+#   "masterCategory": "Accessories",
+#   "subCategory": "Eyewear",
+#   "season": "Winter",
+#   "usage": "Casual",
+#   "baseColour": "Blue",
+#   "articleType": "Sunglasses"
+# }
+# 
+# # 주의
+# - 7개 항목 이외의 정보(텍스트, 문장 등)는 절대 포함하지 마세요.
+# <|vision_start|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|image_pad|><|vision_end|><|im_end|>
+# <|im_start|>assistant
+# <think>
+# 
+# </think>
+# 
+# {"gender": "Men", "masterCategory": "Apparel", "subCategory": "Bottomwear", "season": "Fall", "usage": "Casual", "baseColour": "Blue", "articleType": "Shorts"}<|im_end|>
+decoded_text = processor.tokenizer.decode(batch["input_ids"][0])
+print("\n디코딩된 텍스트:")
+print(decoded_text)
+
