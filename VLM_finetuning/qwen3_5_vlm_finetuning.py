@@ -391,7 +391,7 @@ peft_config = LoraConfig(
 
 ## 모델 학습 파라미터 지정
 args = SFTConfig(
-    output_dir="output_dir", # 저장될 디렉토리와 저장소 ID
+    output_dir="Qwen3.5-2B-fashion-product-images-classification", # 저장될 디렉토리와 저장소 ID
     num_train_epochs=2, # 학습할 총 에포크 수
     per_device_train_batch_size=4, # GPU당 배치 크기
     gradient_accumulation_steps=32, # 그래디언트 누적 스텝수 (4개씩 32번 모아서 1번 업데이트 -> 실제 배치 크기 = 4 x 32 = 128)
