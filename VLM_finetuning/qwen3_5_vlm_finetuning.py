@@ -26,6 +26,20 @@ if sys.platform == "win32":
 else:
     os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True,garbage_collection_threshold:0.8")
 
+# [Windows cuDNN 충돌 방지] torch를 import 하기 전에 설정
+# - Windows용 torch는 시스템 cuDNN을 쓰지 않고, torch\lib 안에 들어 있는 자체 cuDNN만 쓴다. (torch 2.12.1 = cuDNN 9.20)
+# - 그런데 이 9.20에는 cudnn_engines_tensor_ir64_9.dll이 빠져 있어서, PATH에 시스템 cuDNN이 있으면 이 파일만 거기서 불러온다.
+#   -> 버전이 다른 cuDNN이 섞여, 비전 인코더의 Conv3d에서 CUDNN_STATUS_SUBLIBRARY_VERSION_MISMATCH 에러가 난다.
+#   (참고: https://github.com/pytorch/pytorch/issues/188892)
+# - 해결: 이 파이썬 프로세스의 PATH에서만 해당 DLL이 있는 폴더를 뺀다. (시스템 환경변수는 바뀌지 않음)
+#   torch에 필요한 CUDA DLL(cudart, cublas 등)은 torch\lib에 모두 들어 있어서 빼도 문제없다.
+# - torch 2.14.1 이상은 이 DLL을 torch\lib에 직접 포함하므로, torch를 올리면 이 코드는 지워도 된다.
+if sys.platform == "win32":
+    os.environ["PATH"] = os.pathsep.join(
+        p for p in os.environ["PATH"].split(os.pathsep)
+        if not (p and os.path.isfile(os.path.join(p, "cudnn_engines_tensor_ir64_9.dll")))
+    )
+
 # io, json: 입출력 및 JSON 데이터 처리를 위한 파이썬 기본 라이브러리
 # - 이미지 데이터를 메모리에서 처리하고 패션 제품의 속성 정보를 JSON 형태로 다룰 때 사용
 import io
