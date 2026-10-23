@@ -437,7 +437,7 @@ args = SFTConfig(
     warmup_ratio=0.03, # 워밍업 비율 (전체 학습 스텝의 3% 구간 동안 학습률을 0에서 설정한 학습률까지 점진적으로 증가, 학습 초기의 불안정성을 방지)
                        # !! 단, 아래 lr_scheduler_type="constant"는 워밍업을 무시하므로 지금 설정에서는 워밍업이 적용되지 않는다.
                        #    워밍업을 쓰려면 "constant_with_warmup"을 사용해야 한다. (warmup_ratio도 deprecated -> warmup_steps 권장)
-    lr_scheduler_type="constant", # 고정 학습률
+    lr_scheduler_type="constant_with_warmup", # 고정 학습률
     push_to_hub=False, # 허브 업로드 안함
     ## 데이터셋에 있는 "messages" 컬럼을 지우지 않고 collate_fn까지 그대로 전달
     ## (True면 Trainer가 model.forward()의 인자 이름에 없는 컬럼을 지워버려서 collate_fn이 빈 데이터를 받는다)
