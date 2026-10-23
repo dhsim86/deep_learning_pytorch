@@ -1,4 +1,8 @@
 ######################################################################
+# [Qwen3.5-0.8B 버전]
+#   2B 버전(qwen3_5_2b_vlm_finetuning.py)과 코드는 같고, 모델 이름 / 배치 크기 / 숫자가 들어간 주석만 다르다.
+#   0.8B와 2B는 층 구성, 토큰 ID, 챗 템플릿, 이미지 전처리 설정이 같아서 나머지 코드는 그대로 쓸 수 있다.
+#
 # [RTX 3080 Ti(VRAM 12GB)에서 학습하기 위해 적용한 메모리 절약 방법]
 #   ① 프롬프트(system/user) 마스킹      -> collate_fn 7단계 (모델 응답만 학습)
 #   ② loss_type="chunked_nll"           -> SFTConfig (로짓을 한꺼번에 만들지 않음)
@@ -6,8 +10,8 @@
 #   ④ 데이터셋 지연 변환(with_transform) -> 데이터셋 로드 및 전처리 (CPU RAM 절약)
 #   ⑤ CUDA 메모리 할당자 설정            -> 바로 아래
 #
-# 위 ①~③을 적용하지 않으면 12GB GPU 기준 대략 아래처럼 차서 OOM이 나거나 크게 느려진다.
-#   가중치(bf16) 약 4.1GB + LoRA 학습용 메모리 약 2.5GB + 로짓 약 4GB + 활성값 등
+# 위 ①~③을 적용하지 않으면 12GB GPU 기준 대략 아래처럼 차서 OOM이 나거나 크게 느려진다. (이 파일의 배치 크기 8 기준)
+#   가중치(bf16) 약 1.6GB + LoRA 학습용 메모리 약 2.4GB + 로짓 약 8GB + 활성값 등
 ######################################################################
 
 # [메모리 절약 ⑤] PyTorch CUDA 메모리 할당자 옵션 (반드시 torch를 import 하기 전에 설정해야 적용됨)
@@ -290,10 +294,10 @@ print("\n=============================================")
 # 모델 및 프로세서 로드
 use_mps = torch.backends.mps.is_available()
 
-model_id = "Qwen/Qwen3.5-2B" # 대화용(instruct) 모델. 사전학습만 된 모델은 "Qwen/Qwen3.5-2B-Base"
+model_id = "Qwen/Qwen3.5-0.8B" # 대화용(instruct) 모델. 사전학습만 된 모델은 "Qwen/Qwen3.5-0.8B-Base"
 
 ## 모델과 프로세서 로드
-## - Qwen3.5-2B: 파라미터 약 22억 개 (비전 인코더 약 3.3억 개 포함) -> bf16(파라미터당 2바이트) 기준 가중치만 약 4.1GB
+## - Qwen3.5-0.8B: 파라미터 약 8.5억 개 (비전 인코더 약 1억 개 포함) -> bf16(파라미터당 2바이트) 기준 가중치만 약 1.6GB
 model = AutoModelForImageTextToText.from_pretrained(
     model_id,
     device_map="auto", # GPU 메모리에 자동 할당 (여러 GPU가 있는 경우 자동으로 분산 배치)
@@ -371,9 +375,9 @@ print("\n=============================================")
 
 ## LoRA 설정
 ## [메모리 절약 ③] r=256 -> 16 (lora_alpha도 "alpha = 2 x r" 관례에 맞춰 128 -> 32)
-##   - 학습 파라미터 수: 약 1억 6,400만 개 -> 약 1,560만 개
+##   - 학습 파라미터 수: 약 1억 6,400만 개 -> 약 1,020만 개
 ##   - 학습 파라미터 1개당 fp32 가중치(4) + 기울기(4) + AdamW 상태 2개(8) = 약 16바이트가 필요
-##     -> 약 2.45GB -> 약 0.23GB
+##     -> 약 2.4GB -> 약 0.15GB
 ##   - 7개 속성을 고르는 단순한 태스크라 r=16으로도 충분하다. (성능이 부족하면 32~64로 올려서 실험)
 peft_config = LoraConfig(
     lora_alpha=32, # 모델 가중치에 LoRA 업데이트를 적용하는 정도를 조절하는 스케일링 계수 (실제 배율 = lora_alpha / r = 2)
@@ -405,10 +409,18 @@ peft_config = LoraConfig(
 
 ## 모델 학습 파라미터 지정
 args = SFTConfig(
-    output_dir="Qwen3.5-2B-fashion-product-images-classification", # 저장될 디렉토리와 저장소 ID
+    output_dir="Qwen3.5-0.8B-fashion-product-images-classification", # 저장될 디렉토리와 저장소 ID
     num_train_epochs=2, # 학습할 총 에포크 수
-    per_device_train_batch_size=4, # GPU당 배치 크기
-    gradient_accumulation_steps=32, # 그래디언트 누적 스텝수 (4개씩 32번 모아서 1번 업데이트 -> 실제 배치 크기 = 4 x 32 = 128)
+    ## [0.8B 배치 크기] 2B 파일의 4 x 32 -> 8 x 16
+    ##   - 실제 배치 크기(배치 크기 x 누적 스텝수)는 128 그대로라서, 학습률 등 나머지 설정과 전체 스텝 수(552)도 그대로 둔다.
+    ##   - 0.8B는 가중치가 2B보다 약 2.5GB 작아서, 남는 메모리로 한 번에 처리하는 샘플 수를 늘린다.
+    ##     (GPU는 작은 일을 여러 번 나눠 받는 것보다 큰 일을 한 번에 받을 때 대체로 효율이 좋다)
+    ##   - 맥북(MPS)에서 잰 GPU 메모리: 2B 배치 4 = 11.5GB, 0.8B 배치 8 = 7.7GB, 0.8B 배치 16 = 10.6GB
+    ##     (MPS와 CUDA는 메모리를 세는 방식이 달라 절대값보다는 서로 비교하는 용도로 볼 것)
+    ##     -> 배치 8은 2B 배치 4보다 약 4GB 덜 쓴다. 배치 16은 2B 배치 4와 비슷해서 12GB GPU에서는 여유가 거의 없다.
+    ##   - OOM이 나면 4 x 32로, 메모리가 넉넉하면 16 x 8로 바꿔볼 수 있다. (두 값의 곱은 128로 유지)
+    per_device_train_batch_size=8, # GPU당 배치 크기
+    gradient_accumulation_steps=16, # 그래디언트 누적 스텝수 (8개씩 16번 모아서 1번 업데이트 -> 실제 배치 크기 = 8 x 16 = 128)
     gradient_checkpointing=True, # 메모리 절약을 위한 체크 포인팅 (중간 계산값을 저장하지 않고 역전파 때 다시 계산)
     optim="adamw_torch" if use_mps else "adamw_torch_fused", # 옵티마이저
     logging_steps=10, # 로그 기록 주기
@@ -430,9 +442,10 @@ args = SFTConfig(
     dataset_kwargs={"skip_prepare_dataset": True},
     # [메모리 절약 ②] 로짓(logits)을 한꺼번에 만들지 않고 나눠서 loss를 계산 (계산 결과는 일반 loss와 동일)
     ## - 로짓 = 토큰마다 "다음 토큰이 사전(vocab) 248,320개 중 무엇일지"를 매긴 점수표
-    ## - 배치 4 x 434토큰 x 248,320개 -> 로짓 + float32 복사본 + softmax 결과를 합치면 약 4GB (12GB GPU의 1/3)
+    ## - 배치 8 x 438토큰 x 248,320개 -> 로짓 + float32 복사본 + softmax 결과를 합치면 약 8GB (12GB GPU의 2/3)
+    ##   (사전 크기가 2B와 같아서, 토큰 1개당 로짓 크기는 모델이 작아져도 줄지 않는다)
     ## - chunked_nll은 256토큰씩 나눠서 계산하고, label이 -100인 토큰은 로짓 계산 자체를 건너뛴다.
-    ##   -> 프롬프트 마스킹(collate_fn 7단계)과 함께 쓰면 로짓을 계산할 토큰이 배치 4 기준 1,441개 -> 226개로 줄어든다.
+    ##   -> 프롬프트 마스킹(collate_fn 7단계)과 함께 쓰면 로짓을 계산할 토큰이 배치 8 기준 약 2,900개 -> 약 450개로 줄어든다.
     ## - TRL 1.12 기준 옵션. (더 최신 TRL에서는 기본값 "nll"이 이 방식으로 바뀌어 "chunked_nll"은 같은 뜻의 별칭으로만 남음)
     loss_type="chunked_nll",
     ## [버그 수정] report_to=None -> "none"
