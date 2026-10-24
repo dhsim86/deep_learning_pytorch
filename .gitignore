@@ -30,3 +30,7 @@ kanana2-1.3b-summarizer-ko/
 output_dir
 qwen3*
 kanana2*
+
+# dataset
+rag_finetuning_test_dataset
+MNIST_data
