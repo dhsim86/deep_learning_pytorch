@@ -164,6 +164,8 @@ def load_test_data():
         if video_inputs is not None:
             mm_data["video"] = video_inputs
 
+        ## vLLM 멀티모달 입력 준비
+        ## vLLM은 텍스트와 멀티미디어 데이터를 분리하여 처리하므로, 이미지와 비디오 데이터를 별도의 딕셔너리로 지정
         data["input"].append({"prompt": input_part, "multi_modal_data": mm_data})
         data["label"].append(label_part)
         data["name"].append(row["productDisplayName"])
