@@ -27,3 +27,6 @@ venv.bak/
 
 # model
 kanana2-1.3b-summarizer-ko/
+output_dir
+qwen3*
+kanana2*
