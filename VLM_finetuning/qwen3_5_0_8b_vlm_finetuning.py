@@ -604,6 +604,11 @@ batch = collate_fn([example])
 
 # {'messages': [{'role': 'system', 'content': [{'type': 'text', 'text': '당신은 이미지와 제품명(name)으로부터 패션/스타일 정보를 추론하는 분류 모델입니다.'}]}, {'role': 'user', 'content': [{'type': 'text', 'text': '입력 정보:\n- name: Proline Men Blue Shorts\n- image: [image]\n\n위 정보를 바탕으로, 아래 7가지 key에 대한 값을 JSON 형태로 추론해 주세요:\n1) gender\n2) masterCategory\n3) subCategory\n4) season\n5) usage\n6) baseColour\n7) articleType\n\n출력시 **아래 JSON 예시 형태**를 반드시 지키세요:\n{\n  "gender": "예시값",\n  "masterCategory": "예시값",\n  "subCategory": "예시값",\n  "season": "예시값",\n  "usage": "예시값",\n  "baseColour": "예시값",\n  "articleType": "예시값"\n}\n\n# 예시\n{\n  "gender": "Men",\n  "masterCategory": "Accessories",\n  "subCategory": "Eyewear",\n  "season": "Winter",\n  "usage": "Casual",\n  "baseColour": "Blue",\n  "articleType": "Sunglasses"\n}\n\n# 주의\n- 7개 항목 이외의 정보(텍스트, 문장 등)는 절대 포함하지 마세요.\n'}, {'type': 'image', 'image': <PIL.PngImagePlugin.PngImageFile image mode=RGB size=60x80 at 0x3D9A24B90>}]}, {'role': 'assistant', 'content': [{'type': 'text', 'text': '{"gender": "Men", "masterCategory": "Apparel", "subCategory": "Bottomwear", "season": "Fall", "usage": "Casual", "baseColour": "Blue", "articleType": "Shorts"}'}]}]}
 print("\n처리된 배치 데이터:")
+
+## 모델 입력시
+## 1. pixel_values가 비전 인코더를 통해 시각 임베딩 벡터로 변환
+## 2. input_ids에 있는 정수들도 텍스트 임베딩 벡터로 변환
+## 3. input_ids에 있던 특수 토큰(<|image_pad|>)의 임베딩 위치에 시각 임베딩 벡터를 끼워 넣은 후 LLM으로 전달
 print("입력 ID 형태:", batch["input_ids"].shape) # torch.Size([1, 431]) # 이미지 자리(<|image_pad|> 70개)를 포함해 총 431 토큰
 print("어텐션 마스크 형태:", batch["attention_mask"].shape) # torch.Size([1, 431])
 ## 이미지는 16x16 픽셀 크기의 패치(조각) 단위로 잘려서 들어간다.
