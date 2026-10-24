@@ -29,6 +29,11 @@ dependencies = [
     "openai",
     "pandas",
     "tqdm",
+    # VLM 평가 스크립트(qwen3_5_0_8b_vlm_evaluation.py)용
+    # - qwen-vl-utils: 학습 때와 같은 방식으로 이미지를 전처리 (process_vision_info)
+    # - scikit-learn: 학습 때와 같은 학습/테스트 분할(train_test_split) 및 F1 계산
+    "qwen-vl-utils",
+    "scikit-learn",
 ]
 
 [tool.uv]

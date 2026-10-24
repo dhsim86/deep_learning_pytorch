@@ -1,0 +1,551 @@
+﻿name,label,base_pred,tuned_pred
+French Connection Women Beige Dress,"{""gender"": ""Women"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Dress"", ""season"": ""Winter"", ""usage"": ""Casual"", ""baseColour"": ""Beige"", ""articleType"": ""Dresses""}","```json
+{
+  ""gender"": ""Women"",
+  ""masterCategory"": ""Dresses"",
+  ""subCategory"": ""Dresses"",
+  ""season"": ""Spring"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""Beige"",
+  ""articleType"": ""Dress""
+}
+```","{""gender"": ""Women"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Dress"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Beige"", ""articleType"": ""Dresses""}"
+French Connection Women Copper Clutch,"{""gender"": ""Women"", ""masterCategory"": ""Accessories"", ""subCategory"": ""Bags"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Copper"", ""articleType"": ""Clutches""}","```json
+{
+  ""gender"": ""Women"",
+  ""masterCategory"": ""Accessories"",
+  ""subCategory"": ""Clutch"",
+  ""season"": ""All Season"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""Brown"",
+  ""articleType"": ""Clutch""
+}
+```","{""gender"": ""Women"", ""masterCategory"": ""Accessories"", ""subCategory"": ""Bags"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Copper"", ""articleType"": ""Clutches""}"
+Myntra Men Blue Banana Diet T-shirt,"{""gender"": ""Men"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Topwear"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Blue"", ""articleType"": ""Tshirts""}","```json
+{
+  ""gender"": ""Men"",
+  ""masterCategory"": ""Accessories"",
+  ""subCategory"": ""T-Shirts"",
+  ""season"": ""Spring"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""Blue"",
+  ""articleType"": ""T-Shirt""
+}
+```","{""gender"": ""Men"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Topwear"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Blue"", ""articleType"": ""Tshirts""}"
+Lucera Women Silver Pendant with Chain,"{""gender"": ""Women"", ""masterCategory"": ""Accessories"", ""subCategory"": ""Jewellery"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Silver"", ""articleType"": ""Pendant""}","```json
+{
+  ""gender"": ""Women"",
+  ""masterCategory"": ""Accessories"",
+  ""subCategory"": ""Pendant"",
+  ""season"": ""All"",
+  ""usage"": ""Daily"",
+  ""baseColour"": ""Silver"",
+  ""articleType"": ""Pendant""
+}
+```","{""gender"": ""Women"", ""masterCategory"": ""Accessories"", ""subCategory"": ""Jewellery"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Silver"", ""articleType"": ""Pendant""}"
+ADIDAS Men Black T-shirt,"{""gender"": ""Men"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Topwear"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Black"", ""articleType"": ""Tshirts""}","```json
+{
+  ""gender"": ""Men"",
+  ""masterCategory"": ""Accessories"",
+  ""subCategory"": ""T-Shirts"",
+  ""season"": ""Summer"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""Black"",
+  ""articleType"": ""T-Shirt""
+}
+```","{""gender"": ""Men"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Topwear"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Black"", ""articleType"": ""Tshirts""}"
+Puma Men Ferrari Logo Tee II Red Tshirt,"{""gender"": ""Men"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Topwear"", ""season"": ""Fall"", ""usage"": ""Casual"", ""baseColour"": ""Red"", ""articleType"": ""Tshirts""}","```json
+{
+  ""gender"": ""Men"",
+  ""masterCategory"": ""Accessories"",
+  ""subCategory"": ""T-Shirts"",
+  ""season"": ""Summer"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""Red"",
+  ""articleType"": ""T-Shirt""
+}
+```","{""gender"": ""Men"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Topwear"", ""season"": ""Fall"", ""usage"": ""Casual"", ""baseColour"": ""Red"", ""articleType"": ""Tshirts""}"
+Murcia Women Leather Black Handbag,"{""gender"": ""Women"", ""masterCategory"": ""Accessories"", ""subCategory"": ""Bags"", ""season"": ""Winter"", ""usage"": ""Casual"", ""baseColour"": ""Black"", ""articleType"": ""Handbags""}","```json
+{
+  ""gender"": ""Women"",
+  ""masterCategory"": ""Accessories"",
+  ""subCategory"": ""Leather Handbags"",
+  ""season"": ""All Year"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""Black"",
+  ""articleType"": ""Handbag""
+}
+```","{""gender"": ""Women"", ""masterCategory"": ""Accessories"", ""subCategory"": ""Bags"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Black"", ""articleType"": ""Handbags""}"
+ADIDAS Originals Women Top Ten low Sleek White Casual Shoes,"{""gender"": ""Women"", ""masterCategory"": ""Footwear"", ""subCategory"": ""Shoes"", ""season"": ""Fall"", ""usage"": ""Casual"", ""baseColour"": ""White"", ""articleType"": ""Casual Shoes""}","```json
+{
+  ""gender"": ""Women"",
+  ""masterCategory"": ""Footwear"",
+  ""subCategory"": ""Casual Shoes"",
+  ""season"": ""Summer"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""White"",
+  ""articleType"": ""Shoes""
+}
+```","{""gender"": ""Women"", ""masterCategory"": ""Footwear"", ""subCategory"": ""Shoes"", ""season"": ""Fall"", ""usage"": ""Casual"", ""baseColour"": ""White"", ""articleType"": ""Casual Shoes""}"
+Converse Unisex Casual Black Slipper,"{""gender"": ""Unisex"", ""masterCategory"": ""Footwear"", ""subCategory"": ""Flip Flops"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Black"", ""articleType"": ""Flip Flops""}","```json
+{
+  ""gender"": ""Unisex"",
+  ""masterCategory"": ""Footwear"",
+  ""subCategory"": ""Slippers"",
+  ""season"": ""All Season"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""Black"",
+  ""articleType"": ""Slippers""
+}
+```","{""gender"": ""Unisex"", ""masterCategory"": ""Footwear"", ""subCategory"": ""Flip Flops"", ""season"": ""Fall"", ""usage"": ""Casual"", ""baseColour"": ""Black"", ""articleType"": ""Flip Flops""}"
+Fastrack Women Freestyle Sports Analog Steel Black Watch,"{""gender"": ""Women"", ""masterCategory"": ""Accessories"", ""subCategory"": ""Watches"", ""season"": ""Winter"", ""usage"": ""Casual"", ""baseColour"": ""Black"", ""articleType"": ""Watches""}","```json
+{
+  ""gender"": ""Women"",
+  ""masterCategory"": ""Accessories"",
+  ""subCategory"": ""Watch"",
+  ""season"": ""None"",
+  ""usage"": ""Sport"",
+  ""baseColour"": ""Black"",
+  ""articleType"": ""Watch""
+}
+```","{""gender"": ""Women"", ""masterCategory"": ""Accessories"", ""subCategory"": ""Watches"", ""season"": ""Winter"", ""usage"": ""Casual"", ""baseColour"": ""Black"", ""articleType"": ""Watches""}"
+Puma Deccan Chargers Kids Navy Blue Lookalike Jersey,"{""gender"": ""Unisex"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Topwear"", ""season"": ""Summer"", ""usage"": ""Sports"", ""baseColour"": ""Blue"", ""articleType"": ""Tshirts""}","```json
+{
+  ""gender"": ""Kids"",
+  ""masterCategory"": ""Accessories"",
+  ""subCategory"": ""Sports"",
+  ""season"": ""Summer"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""Navy Blue"",
+  ""articleType"": ""Jersey""
+}
+```","{""gender"": ""Unisex"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Topwear"", ""season"": ""Fall"", ""usage"": ""Sports"", ""baseColour"": ""Navy Blue"", ""articleType"": ""Tshirts""}"
+CABARELLI Men Black Laptop bag,"{""gender"": ""Men"", ""masterCategory"": ""Accessories"", ""subCategory"": ""Bags"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Black"", ""articleType"": ""Laptop Bag""}","```json
+{
+  ""gender"": ""Men"",
+  ""masterCategory"": ""Accessories"",
+  ""subCategory"": ""Laptop Bag"",
+  ""season"": ""All Season"",
+  ""usage"": ""Business"",
+  ""baseColour"": ""Black"",
+  ""articleType"": ""Laptop Bag""
+}
+```","{""gender"": ""Men"", ""masterCategory"": ""Accessories"", ""subCategory"": ""Bags"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Black"", ""articleType"": ""Laptop Bag""}"
+ADIDAS Men Marathon Black Sports Shoes,"{""gender"": ""Men"", ""masterCategory"": ""Footwear"", ""subCategory"": ""Shoes"", ""season"": ""Fall"", ""usage"": ""Sports"", ""baseColour"": ""Black"", ""articleType"": ""Sports Shoes""}","```json
+{
+  ""gender"": ""Men"",
+  ""masterCategory"": ""Sports"",
+  ""subCategory"": ""Running Shoes"",
+  ""season"": ""All Season"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""Black"",
+  ""articleType"": ""Footwear""
+}
+```","{""gender"": ""Men"", ""masterCategory"": ""Footwear"", ""subCategory"": ""Shoes"", ""season"": ""Fall"", ""usage"": ""Sports"", ""baseColour"": ""Black"", ""articleType"": ""Sports Shoes""}"
+Puma Men White and Blue T-shirt,"{""gender"": ""Men"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Topwear"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""White"", ""articleType"": ""Tshirts""}","```json
+{
+  ""gender"": ""Men"",
+  ""masterCategory"": ""Clothing"",
+  ""subCategory"": ""T-Shirt"",
+  ""season"": ""Summer"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""White"",
+  ""articleType"": ""T-Shirt""
+}
+```","{""gender"": ""Men"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Topwear"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""White"", ""articleType"": ""Tshirts""}"
+ADIDAS Men's Besulik Trainer White Black Red Shoe,"{""gender"": ""Men"", ""masterCategory"": ""Footwear"", ""subCategory"": ""Shoes"", ""season"": ""Summer"", ""usage"": ""Sports"", ""baseColour"": ""White"", ""articleType"": ""Sports Shoes""}","```json
+{
+  ""gender"": ""Men"",
+  ""masterCategory"": ""Shoes"",
+  ""subCategory"": ""Running Shoes"",
+  ""season"": ""All Season"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""White"",
+  ""articleType"": ""Shoe""
+}
+```","{""gender"": ""Men"", ""masterCategory"": ""Footwear"", ""subCategory"": ""Shoes"", ""season"": ""Summer"", ""usage"": ""Sports"", ""baseColour"": ""White"", ""articleType"": ""Sports Shoes""}"
+Nike Men's As Kobe Comic Black T-shirt,"{""gender"": ""Men"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Topwear"", ""season"": ""Summer"", ""usage"": ""Sports"", ""baseColour"": ""Black"", ""articleType"": ""Tshirts""}","```json
+{
+  ""gender"": ""Men"",
+  ""masterCategory"": ""T-Shirts"",
+  ""subCategory"": ""Graphic T-Shirts"",
+  ""season"": ""All Season"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""Black"",
+  ""articleType"": ""T-Shirt""
+}
+```","{""gender"": ""Men"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Topwear"", ""season"": ""Summer"", ""usage"": ""Sports"", ""baseColour"": ""Black"", ""articleType"": ""Tshirts""}"
+Madagascar3 Boys Blue Printed T-Shirt,"{""gender"": ""Boys"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Topwear"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Blue"", ""articleType"": ""Tshirts""}","```json
+{
+  ""gender"": ""Boy"",
+  ""masterCategory"": ""Clothing"",
+  ""subCategory"": ""T-Shirt"",
+  ""season"": ""Summer"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""Blue"",
+  ""articleType"": ""T-Shirt""
+}
+```","{""gender"": ""Boys"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Topwear"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Blue"", ""articleType"": ""Tshirts""}"
+Playboy Men Casual Red Casual Shoes,"{""gender"": ""Men"", ""masterCategory"": ""Footwear"", ""subCategory"": ""Shoes"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Red"", ""articleType"": ""Casual Shoes""}","```json
+{
+  ""gender"": ""Men"",
+  ""masterCategory"": ""Footwear"",
+  ""subCategory"": ""Casual Shoes"",
+  ""season"": ""All Season"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""Red"",
+  ""articleType"": ""Shoes""
+}
+```","{""gender"": ""Men"", ""masterCategory"": ""Footwear"", ""subCategory"": ""Shoes"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Red"", ""articleType"": ""Casual Shoes""}"
+Mark Taylor Men White Striped Blue Shirt,"{""gender"": ""Men"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Topwear"", ""season"": ""Fall"", ""usage"": ""Casual"", ""baseColour"": ""Blue"", ""articleType"": ""Shirts""}","```json
+{
+  ""gender"": ""Men"",
+  ""masterCategory"": ""Clothing"",
+  ""subCategory"": ""Shirt"",
+  ""season"": ""Spring"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""White"",
+  ""articleType"": ""Shirt""
+}
+```","{""gender"": ""Men"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Topwear"", ""season"": ""Fall"", ""usage"": ""Formal"", ""baseColour"": ""Blue"", ""articleType"": ""Shirts""}"
+Revv Men Steel Ring,"{""gender"": ""Men"", ""masterCategory"": ""Accessories"", ""subCategory"": ""Jewellery"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Steel"", ""articleType"": ""Ring""}","```json
+{
+  ""gender"": ""Men"",
+  ""masterCategory"": ""Accessories"",
+  ""subCategory"": ""Rings"",
+  ""season"": ""None"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""Silver"",
+  ""articleType"": ""Ring""
+}
+```","{""gender"": ""Men"", ""masterCategory"": ""Accessories"", ""subCategory"": ""Jewellery"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Steel"", ""articleType"": ""Ring""}"
+Doodle Girls Blue Washed Dress,"{""gender"": ""Girls"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Dress"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Blue"", ""articleType"": ""Dresses""}","```json
+{
+  ""gender"": ""Women"",
+  ""masterCategory"": ""Outerwear"",
+  ""subCategory"": ""Dress"",
+  ""season"": ""Spring"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""Grey"",
+  ""articleType"": ""Dress""
+}
+```","{""gender"": ""Girls"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Dress"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Blue"", ""articleType"": ""Dresses""}"
+Nike Women Tenkay Slip Black Shoe,"{""gender"": ""Women"", ""masterCategory"": ""Footwear"", ""subCategory"": ""Shoes"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Black"", ""articleType"": ""Casual Shoes""}","```json
+{
+  ""gender"": ""Women"",
+  ""masterCategory"": ""Shoes"",
+  ""subCategory"": ""Slip Shoes"",
+  ""season"": ""All Season"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""Black"",
+  ""articleType"": ""Footwear""
+}
+```","{""gender"": ""Women"", ""masterCategory"": ""Footwear"", ""subCategory"": ""Shoes"", ""season"": ""Summer"", ""usage"": ""Sports"", ""baseColour"": ""Black"", ""articleType"": ""Sports Shoes""}"
+United Colors of Benetton Women Solid Black Top,"{""gender"": ""Women"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Topwear"", ""season"": ""Fall"", ""usage"": ""Casual"", ""baseColour"": ""Black"", ""articleType"": ""Tops""}","```json
+{
+  ""gender"": ""Women"",
+  ""masterCategory"": ""Top"",
+  ""subCategory"": ""Solid Black"",
+  ""season"": ""All Season"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""Black"",
+  ""articleType"": ""Top""
+}
+```","{""gender"": ""Women"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Topwear"", ""season"": ""Fall"", ""usage"": ""Casual"", ""baseColour"": ""Black"", ""articleType"": ""Tops""}"
+United Colors of Benetton Women Solid Blue Sweatshirt,"{""gender"": ""Women"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Topwear"", ""season"": ""Fall"", ""usage"": ""Casual"", ""baseColour"": ""Blue"", ""articleType"": ""Sweatshirts""}","```json
+{
+  ""gender"": ""Women"",
+  ""masterCategory"": ""Clothing"",
+  ""subCategory"": ""Sweatshirt"",
+  ""season"": ""Summer"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""Blue"",
+  ""articleType"": ""Sweatshirt""
+}
+```","{""gender"": ""Women"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Topwear"", ""season"": ""Fall"", ""usage"": ""Casual"", ""baseColour"": ""Blue"", ""articleType"": ""Sweatshirts""}"
+Lino Perros Women Black Belt,"{""gender"": ""Women"", ""masterCategory"": ""Accessories"", ""subCategory"": ""Belts"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Black"", ""articleType"": ""Belts""}","```json
+{
+  ""gender"": ""Women"",
+  ""masterCategory"": ""Accessories"",
+  ""subCategory"": ""Belts"",
+  ""season"": ""All"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""Black"",
+  ""articleType"": ""Belts""
+}
+```","{""gender"": ""Women"", ""masterCategory"": ""Accessories"", ""subCategory"": ""Belts"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Black"", ""articleType"": ""Belts""}"
+Gini and Jony Boys Printed Black T-shirt,"{""gender"": ""Boys"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Topwear"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Black"", ""articleType"": ""Tshirts""}","```json
+{
+  ""gender"": ""Men"",
+  ""masterCategory"": ""Accessories"",
+  ""subCategory"": ""T-Shirts"",
+  ""season"": ""Summer"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""Black"",
+  ""articleType"": ""T-Shirt""
+}
+```","{""gender"": ""Boys"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Topwear"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Black"", ""articleType"": ""Tshirts""}"
+Puma Men Black Graphic T-shirt,"{""gender"": ""Men"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Topwear"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Black"", ""articleType"": ""Tshirts""}","```json
+{
+  ""gender"": ""Men"",
+  ""masterCategory"": ""Accessories"",
+  ""subCategory"": ""T-Shirts"",
+  ""season"": ""Summer"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""Black"",
+  ""articleType"": ""Graphic T-Shirt""
+}
+```","{""gender"": ""Men"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Topwear"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Black"", ""articleType"": ""Tshirts""}"
+Peter England Men Stripes Orange Shirt,"{""gender"": ""Men"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Topwear"", ""season"": ""Fall"", ""usage"": ""Formal"", ""baseColour"": ""Orange"", ""articleType"": ""Shirts""}","```json
+{
+  ""gender"": ""Men"",
+  ""masterCategory"": ""Clothing"",
+  ""subCategory"": ""Shirt"",
+  ""season"": ""Spring"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""Orange"",
+  ""articleType"": ""Shirt""
+}
+```","{""gender"": ""Men"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Topwear"", ""season"": ""Fall"", ""usage"": ""Formal"", ""baseColour"": ""Orange"", ""articleType"": ""Shirts""}"
+Lotus Herbals Seduction Ruby Desire Lip Contour Definer 51,"{""gender"": ""Women"", ""masterCategory"": ""Personal Care"", ""subCategory"": ""Lips"", ""season"": ""Spring"", ""usage"": ""Casual"", ""baseColour"": ""Maroon"", ""articleType"": ""Lip Liner""}","```json
+{
+  ""gender"": ""Women"",
+  ""masterCategory"": ""Makeup"",
+  ""subCategory"": ""Lip Contour"",
+  ""season"": ""Any"",
+  ""usage"": ""Daily"",
+  ""baseColour"": ""Red"",
+  ""articleType"": ""Lip Contour""
+}
+```","{""gender"": ""Women"", ""masterCategory"": ""Personal Care"", ""subCategory"": ""Lips"", ""season"": ""Spring"", ""usage"": ""Casual"", ""baseColour"": ""Maroon"", ""articleType"": ""Lip Liner""}"
+U.S. Polo Assn. Men Check Brown Shirt,"{""gender"": ""Men"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Topwear"", ""season"": ""Fall"", ""usage"": ""Casual"", ""baseColour"": ""Brown"", ""articleType"": ""Shirts""}","```json
+{
+  ""gender"": ""Men"",
+  ""masterCategory"": ""Clothing"",
+  ""subCategory"": ""Shirt"",
+  ""season"": ""Summer"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""Brown"",
+  ""articleType"": ""Shirt""
+}
+```","{""gender"": ""Men"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Topwear"", ""season"": ""Fall"", ""usage"": ""Casual"", ""baseColour"": ""Brown"", ""articleType"": ""Shirts""}"
+Doodle Girl Hot  Ice Wash Blue Shorts,"{""gender"": ""Women"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Bottomwear"", ""season"": ""Fall"", ""usage"": ""Casual"", ""baseColour"": ""Blue"", ""articleType"": ""Shorts""}","```json
+{
+  ""gender"": ""Women"",
+  ""masterCategory"": ""Accessories"",
+  ""subCategory"": ""Shoes"",
+  ""season"": ""Summer"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""Blue"",
+  ""articleType"": ""Shorts""
+}
+```","{""gender"": ""Women"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Bottomwear"", ""season"": ""Fall"", ""usage"": ""Casual"", ""baseColour"": ""Blue"", ""articleType"": ""Shorts""}"
+Murcia Women Hths Blue Handbags,"{""gender"": ""Women"", ""masterCategory"": ""Accessories"", ""subCategory"": ""Bags"", ""season"": ""Winter"", ""usage"": ""Casual"", ""baseColour"": ""Blue"", ""articleType"": ""Handbags""}","```json
+{
+  ""gender"": ""Women"",
+  ""masterCategory"": ""Handbags"",
+  ""subCategory"": ""Hths"",
+  ""season"": ""Summer"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""Blue"",
+  ""articleType"": ""Handbag""
+}
+```","{""gender"": ""Women"", ""masterCategory"": ""Accessories"", ""subCategory"": ""Bags"", ""season"": ""Winter"", ""usage"": ""Casual"", ""baseColour"": ""Blue"", ""articleType"": ""Handbags""}"
+Colorbar Exclusive Nail Lacquer 19,"{""gender"": ""Women"", ""masterCategory"": ""Personal Care"", ""subCategory"": ""Nails"", ""season"": ""Spring"", ""usage"": ""Casual"", ""baseColour"": ""Blue"", ""articleType"": ""Nail Polish""}","```json
+{
+  ""gender"": ""Women"",
+  ""masterCategory"": ""Nail Art"",
+  ""subCategory"": ""Color"",
+  ""season"": ""Any"",
+  ""usage"": ""Daily"",
+  ""baseColour"": ""Blue"",
+  ""articleType"": ""Nail Lacquer""
+}
+```","{""gender"": ""Women"", ""masterCategory"": ""Personal Care"", ""subCategory"": ""Nails"", ""season"": ""Spring"", ""usage"": ""Casual"", ""baseColour"": ""Blue"", ""articleType"": ""Nail Polish""}"
+Gas Men Sahar Beige Shoes,"{""gender"": ""Men"", ""masterCategory"": ""Footwear"", ""subCategory"": ""Shoes"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Beige"", ""articleType"": ""Casual Shoes""}","```json
+{
+  ""gender"": ""Men"",
+  ""masterCategory"": ""Footwear"",
+  ""subCategory"": ""Boots"",
+  ""season"": ""All Season"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""Beige"",
+  ""articleType"": ""Shoes""
+}
+```","{""gender"": ""Men"", ""masterCategory"": ""Footwear"", ""subCategory"": ""Shoes"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Beige"", ""articleType"": ""Casual Shoes""}"
+Locomotive Men Check Lafeu Grey Shirts,"{""gender"": ""Men"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Topwear"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Grey"", ""articleType"": ""Shirts""}","```json
+{
+  ""gender"": ""Men"",
+  ""masterCategory"": ""Clothing"",
+  ""subCategory"": ""Shirt"",
+  ""season"": ""Summer"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""Grey"",
+  ""articleType"": ""Shirts""
+}
+```","{""gender"": ""Men"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Topwear"", ""season"": ""Fall"", ""usage"": ""Casual"", ""baseColour"": ""Grey"", ""articleType"": ""Shirts""}"
+SDL by Sweet Dreams Women Grey Night suits,"{""gender"": ""Women"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Loungewear and Nightwear"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Grey"", ""articleType"": ""Night suits""}","```json
+{
+  ""gender"": ""Women"",
+  ""masterCategory"": ""Accessories"",
+  ""subCategory"": ""Nightwear"",
+  ""season"": ""Night"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""Grey"",
+  ""articleType"": ""Suits""
+}
+```","{""gender"": ""Women"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Loungewear and Nightwear"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Grey"", ""articleType"": ""Night suits""}"
+Arrow Sport Men Blue Polo Tshirts,"{""gender"": ""Men"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Topwear"", ""season"": ""Fall"", ""usage"": ""Casual"", ""baseColour"": ""Blue"", ""articleType"": ""Tshirts""}","```json
+{
+  ""gender"": ""Men"",
+  ""masterCategory"": ""Clothing"",
+  ""subCategory"": ""Polo Shirt"",
+  ""season"": ""All Season"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""Blue"",
+  ""articleType"": ""T-Shirt""
+}
+```","{""gender"": ""Men"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Topwear"", ""season"": ""Fall"", ""usage"": ""Casual"", ""baseColour"": ""Blue"", ""articleType"": ""Tshirts""}"
+Puma Unisex Black Hip Hop Shoes,"{""gender"": ""Unisex"", ""masterCategory"": ""Footwear"", ""subCategory"": ""Shoes"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Black"", ""articleType"": ""Casual Shoes""}","```json
+{
+  ""gender"": ""Unisex"",
+  ""masterCategory"": ""Footwear"",
+  ""subCategory"": ""Hip Hop Sneakers"",
+  ""season"": ""All Season"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""Black"",
+  ""articleType"": ""Shoes""
+}
+```","{""gender"": ""Unisex"", ""masterCategory"": ""Footwear"", ""subCategory"": ""Shoes"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Black"", ""articleType"": ""Casual Shoes""}"
+Jealous 21 Women Knit White Top,"{""gender"": ""Women"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Topwear"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""White"", ""articleType"": ""Tops""}","```json
+{
+  ""gender"": ""Women"",
+  ""masterCategory"": ""Accessories"",
+  ""subCategory"": ""Knitted Tops"",
+  ""season"": ""Spring"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""White"",
+  ""articleType"": ""Top""
+}
+```","{""gender"": ""Women"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Topwear"", ""season"": ""Fall"", ""usage"": ""Casual"", ""baseColour"": ""White"", ""articleType"": ""Tops""}"
+Crocs Crocband Pink Sandals,"{""gender"": ""Unisex"", ""masterCategory"": ""Footwear"", ""subCategory"": ""Sandal"", ""season"": ""Fall"", ""usage"": ""Casual"", ""baseColour"": ""Pink"", ""articleType"": ""Sandals""}","```json
+{
+  ""gender"": ""Women"",
+  ""masterCategory"": ""Footwear"",
+  ""subCategory"": ""Sandals"",
+  ""season"": ""Summer"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""Pink"",
+  ""articleType"": ""Sandal""
+}
+```","{""gender"": ""Women"", ""masterCategory"": ""Footwear"", ""subCategory"": ""Shoes"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Pink"", ""articleType"": ""Flats""}"
+Murcia Women Navy Blue Sling Bag,"{""gender"": ""Women"", ""masterCategory"": ""Accessories"", ""subCategory"": ""Bags"", ""season"": ""Winter"", ""usage"": ""Casual"", ""baseColour"": ""Navy Blue"", ""articleType"": ""Handbags""}","```json
+{
+  ""gender"": ""Women"",
+  ""masterCategory"": ""Bags"",
+  ""subCategory"": ""Sling Bags"",
+  ""season"": ""All Season"",
+  ""usage"": ""Travel"",
+  ""baseColour"": ""Navy Blue"",
+  ""articleType"": ""Bag""
+}
+```","{""gender"": ""Women"", ""masterCategory"": ""Accessories"", ""subCategory"": ""Bags"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Navy Blue"", ""articleType"": ""Handbags""}"
+ADIDAS Men Navy Blue Track Pants,"{""gender"": ""Men"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Bottomwear"", ""season"": ""Summer"", ""usage"": ""Sports"", ""baseColour"": ""Navy Blue"", ""articleType"": ""Track Pants""}","```json
+{
+  ""gender"": ""Men"",
+  ""masterCategory"": ""Clothing"",
+  ""subCategory"": ""Track Pants"",
+  ""season"": ""All Season"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""Navy Blue"",
+  ""articleType"": ""Track Pants""
+}
+```","{""gender"": ""Men"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Bottomwear"", ""season"": ""Summer"", ""usage"": ""Sports"", ""baseColour"": ""Navy Blue"", ""articleType"": ""Track Pants""}"
+BIBA Women Solid Blue Kurta,"{""gender"": ""Women"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Topwear"", ""season"": ""Fall"", ""usage"": ""Ethnic"", ""baseColour"": ""Blue"", ""articleType"": ""Kurtas""}","```json
+{
+  ""gender"": ""Women"",
+  ""masterCategory"": ""Clothing"",
+  ""subCategory"": ""Kurtas"",
+  ""season"": ""All Season"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""Blue"",
+  ""articleType"": ""Kurta""
+}
+```","{""gender"": ""Women"", ""masterCategory"": ""Apparel"", ""subCategory"": ""Topwear"", ""season"": ""Fall"", ""usage"": ""Ethnic"", ""baseColour"": ""Blue"", ""articleType"": ""Kurtas""}"
+Baggit Women Pink Wallet,"{""gender"": ""Women"", ""masterCategory"": ""Accessories"", ""subCategory"": ""Wallets"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Pink"", ""articleType"": ""Wallets""}","```json
+{
+  ""gender"": ""Women"",
+  ""masterCategory"": ""Accessories"",
+  ""subCategory"": ""Wallets"",
+  ""season"": ""All"",
+  ""usage"": ""Daily"",
+  ""baseColour"": ""Pink"",
+  ""articleType"": ""Bag""
+}
+```","{""gender"": ""Women"", ""masterCategory"": ""Accessories"", ""subCategory"": ""Wallets"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Pink"", ""articleType"": ""Wallets""}"
+Fastrack Women Leatherette Purple Belt,"{""gender"": ""Women"", ""masterCategory"": ""Accessories"", ""subCategory"": ""Belts"", ""season"": ""Winter"", ""usage"": ""Casual"", ""baseColour"": ""Purple"", ""articleType"": ""Belts""}","```json
+{
+  ""gender"": ""Women"",
+  ""masterCategory"": ""Accessories"",
+  ""subCategory"": ""Belt"",
+  ""season"": ""Summer"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""Purple"",
+  ""articleType"": ""Belt""
+}
+```","{""gender"": ""Women"", ""masterCategory"": ""Accessories"", ""subCategory"": ""Belts"", ""season"": ""Winter"", ""usage"": ""Casual"", ""baseColour"": ""Purple"", ""articleType"": ""Belts""}"
+Fossil Women White Dial Watch AM4183,"{""gender"": ""Women"", ""masterCategory"": ""Accessories"", ""subCategory"": ""Watches"", ""season"": ""Winter"", ""usage"": ""Casual"", ""baseColour"": ""White"", ""articleType"": ""Watches""}","```json
+{
+  ""gender"": ""Women"",
+  ""masterCategory"": ""Accessories"",
+  ""subCategory"": ""Watches"",
+  ""season"": ""All Year"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""White"",
+  ""articleType"": ""Watch""
+}
+```","{""gender"": ""Women"", ""masterCategory"": ""Accessories"", ""subCategory"": ""Watches"", ""season"": ""Winter"", ""usage"": ""Casual"", ""baseColour"": ""White"", ""articleType"": ""Watches""}"
+Puma Men Spin Gents Black Watches,"{""gender"": ""Men"", ""masterCategory"": ""Accessories"", ""subCategory"": ""Watches"", ""season"": ""Winter"", ""usage"": ""Sports"", ""baseColour"": ""Black"", ""articleType"": ""Watches""}","```json
+{
+  ""gender"": ""Men"",
+  ""masterCategory"": ""Accessories"",
+  ""subCategory"": ""Watches"",
+  ""season"": ""All"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""Black"",
+  ""articleType"": ""Watch""
+}
+```","{""gender"": ""Men"", ""masterCategory"": ""Accessories"", ""subCategory"": ""Watches"", ""season"": ""Winter"", ""usage"": ""Casual"", ""baseColour"": ""Black"", ""articleType"": ""Watches""}"
+Lino Perros Women Leatherite Red Handbag,"{""gender"": ""Women"", ""masterCategory"": ""Accessories"", ""subCategory"": ""Bags"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Red"", ""articleType"": ""Handbags""}","```json
+{
+  ""gender"": ""Women"",
+  ""masterCategory"": ""Accessories"",
+  ""subCategory"": ""Handbags"",
+  ""season"": ""Summer"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""Red"",
+  ""articleType"": ""Leatherite""
+}
+```","{""gender"": ""Women"", ""masterCategory"": ""Accessories"", ""subCategory"": ""Bags"", ""season"": ""Winter"", ""usage"": ""Casual"", ""baseColour"": ""Red"", ""articleType"": ""Handbags""}"
+Ray-Ban Men Aviator Gold Sunglasses,"{""gender"": ""Men"", ""masterCategory"": ""Accessories"", ""subCategory"": ""Eyewear"", ""season"": ""Winter"", ""usage"": ""Casual"", ""baseColour"": ""Gold"", ""articleType"": ""Sunglasses""}","```json
+{
+  ""gender"": ""Men"",
+  ""masterCategory"": ""Accessories"",
+  ""subCategory"": ""Eyewear"",
+  ""season"": ""None"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""Gold"",
+  ""articleType"": ""Sunglasses""
+}
+```","{""gender"": ""Men"", ""masterCategory"": ""Accessories"", ""subCategory"": ""Eyewear"", ""season"": ""Winter"", ""usage"": ""Casual"", ""baseColour"": ""Gold"", ""articleType"": ""Sunglasses""}"
+Lino Perros Women Brown Handbag,"{""gender"": ""Women"", ""masterCategory"": ""Accessories"", ""subCategory"": ""Bags"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Brown"", ""articleType"": ""Handbags""}","```json
+{
+  ""gender"": ""Women"",
+  ""masterCategory"": ""Accessories"",
+  ""subCategory"": ""Handbags"",
+  ""season"": ""All"",
+  ""usage"": ""Casual"",
+  ""baseColour"": ""Brown"",
+  ""articleType"": ""Handbag""
+}
+```","{""gender"": ""Women"", ""masterCategory"": ""Accessories"", ""subCategory"": ""Bags"", ""season"": ""Summer"", ""usage"": ""Casual"", ""baseColour"": ""Brown"", ""articleType"": ""Handbags""}"
