@@ -608,7 +608,7 @@ print("\n처리된 배치 데이터:")
 ## 모델 입력시
 ## 1. pixel_values가 비전 인코더를 통해 시각 임베딩 벡터로 변환
 ## 2. input_ids에 있는 정수들도 텍스트 임베딩 벡터로 변환
-## 3. input_ids에 있던 특수 토큰(<|image_pad|>)의 임베딩 위치에 시각 임베딩 벡터를 끼워 넣은 후 LLM으로 전달
+## 3. input_ids에 있던 특수 토큰(<|image_pad|>)의 임베딩 위치에 시각 임베딩 벡터를 끼워 넣어 하나로 합친 뒤 LLM으로 전달
 print("입력 ID 형태:", batch["input_ids"].shape) # torch.Size([1, 431]) # 이미지 자리(<|image_pad|> 70개)를 포함해 총 431 토큰
 print("어텐션 마스크 형태:", batch["attention_mask"].shape) # torch.Size([1, 431])
 ## 이미지는 16x16 픽셀 크기의 패치(조각) 단위로 잘려서 들어간다.
