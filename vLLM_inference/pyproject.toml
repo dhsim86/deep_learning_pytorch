@@ -5,16 +5,30 @@
 name = "vllm-inference"
 version = "0.1.0"
 description = "vLLM inference/serving environment (macOS Apple Silicon, Windows)"
-requires-python = "==3.12.*" # mac 0.31.0, Windows 0.32.0 wheel이 모두 cp312 전용
+requires-python = "==3.12.*" # mac vllm-metal, Windows vLLM wheel이 모두 cp312 전용
 dependencies = [
-    # mac: 공식 CPU wheel 0.31.0 (0.32.0 mac wheel은 추론 시 버그가 있음: https://github.com/vllm-project/vllm/issues/61131)
+    # mac: 공식 wheel 0.32.0 + Apple Silicon 플러그인(vllm-metal). 추론은 CPU가 아닌 Metal(GPU)에서 돈다.
+    #      (0.32.0 mac wheel의 CPU 추론 버그 https://github.com/vllm-project/vllm/issues/61131 는 Metal로 돌면 해당 없음)
     # Windows: vLLM이 Windows를 공식 지원하지 않아서 오픈소스 빌드(SystemPanic/vllm-windows) 0.32.0 사용
     "vllm",
+    # mac: vLLM 공식 Apple Silicon 플러그인. 설치되어 있으면 vLLM이 자동으로 Metal 플랫폼을 쓴다.
+    # - 버전은 vLLM과 같아야 한다. (0.32.0부터 PyTorch MPS 백엔드 지원)
+    # - 기본 백엔드는 MLX(mlx-lm 모델 구현)인데 kanana-2는 mlx-lm에 구현이 없어서,
+    #   실행할 때 VLLM_METAL_BACKEND=mps 로 PyTorch MPS 백엔드를 선택한다. (kanana2_rag_evaluation.py 참조)
+    "vllm-metal; sys_platform == 'darwin'",
     # 아래 3개는 Windows에서 CUDA(cu130) 빌드를 받기 위해 직접 의존성으로 둔다. (tool.uv.sources는 직접 의존성에만 적용됨)
     # 버전은 Windows용 vLLM wheel이 요구하는 값과 같다.
     "torch==2.11.0; sys_platform == 'win32'",
     "torchvision==0.26.0; sys_platform == 'win32'",
     "torchaudio==2.11.0; sys_platform == 'win32'",
+    # kanana-2(kakaocorp/kanana-2-1.3b-instruct)의 원격 config 코드가 transformers 5.17.0부터 로드 실패해서 5.16.1로 고정
+    # (vLLM 0.32.0, vllm-metal 0.32.0 모두 >=5.16.1,<5.20 이라 만족)
+    "transformers==5.16.1",
+    # RAG 평가 스크립트(kanana2_rag_evaluation.py)용
+    "datasets",
+    "openai",
+    "pandas",
+    "tqdm",
 ]
 
 [tool.uv]
@@ -32,9 +46,10 @@ explicit = true
 
 [tool.uv.sources]
 vllm = [
-    { url = "https://github.com/vllm-project/vllm/releases/download/v0.31.0/vllm-0.31.0%2Bcpu-cp312-cp312-macosx_11_0_arm64.whl", marker = "sys_platform == 'darwin'" },
+    { url = "https://github.com/vllm-project/vllm/releases/download/v0.32.0/vllm-0.32.0%2Bcpu-cp38-abi3-macosx_11_0_arm64.whl", marker = "sys_platform == 'darwin'" },
     { url = "https://github.com/SystemPanic/vllm-windows/releases/download/v0.32.0/vllm-0.32.0%2Bcu132-cp312-cp312-win_amd64.whl", marker = "sys_platform == 'win32'" },
 ]
+vllm-metal = { url = "https://github.com/vllm-project/vllm-metal/releases/download/v0.32.0/vllm_metal-0.32.0-cp312-cp312-macosx_15_0_arm64.whl" } # macOS 15 이상
 torch = [{ index = "pytorch-cu130", marker = "sys_platform == 'win32'" }]
 torchvision = [{ index = "pytorch-cu130", marker = "sys_platform == 'win32'" }]
 torchaudio = [{ index = "pytorch-cu130", marker = "sys_platform == 'win32'" }]
