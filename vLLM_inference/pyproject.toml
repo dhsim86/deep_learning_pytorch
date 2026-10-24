@@ -1,0 +1,40 @@
+# vLLM 추론/서빙 전용 프로젝트 (상위 폴더의 학습용 프로젝트와 venv를 분리)
+# - 상위 프로젝트는 Python 3.13 + torch 2.12.1인데, vLLM wheel이 요구하는 Python/torch 버전과 맞지 않아서 따로 둔다.
+# - 설치: 이 폴더에서 `uv sync` -> 이 폴더 안에 .venv가 생긴다.
+[project]
+name = "vllm-inference"
+version = "0.1.0"
+description = "vLLM inference/serving environment (macOS Apple Silicon, Windows)"
+requires-python = "==3.12.*" # mac 0.31.0, Windows 0.32.0 wheel이 모두 cp312 전용
+dependencies = [
+    # mac: 공식 CPU wheel 0.31.0 (0.32.0 mac wheel은 추론 시 버그가 있음: https://github.com/vllm-project/vllm/issues/61131)
+    # Windows: vLLM이 Windows를 공식 지원하지 않아서 오픈소스 빌드(SystemPanic/vllm-windows) 0.32.0 사용
+    "vllm",
+    # 아래 3개는 Windows에서 CUDA(cu130) 빌드를 받기 위해 직접 의존성으로 둔다. (tool.uv.sources는 직접 의존성에만 적용됨)
+    # 버전은 Windows용 vLLM wheel이 요구하는 값과 같다.
+    "torch==2.11.0; sys_platform == 'win32'",
+    "torchvision==0.26.0; sys_platform == 'win32'",
+    "torchaudio==2.11.0; sys_platform == 'win32'",
+]
+
+[tool.uv]
+# lock 대상 플랫폼: Apple Silicon mac, Windows x64
+environments = [
+    "sys_platform == 'darwin' and platform_machine == 'arm64'",
+    "sys_platform == 'win32' and platform_machine == 'AMD64'",
+]
+
+# torch CUDA 13.0 index (Windows용 vLLM wheel이 torch 2.11.0+cu130을 요구)
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
+
+[tool.uv.sources]
+vllm = [
+    { url = "https://github.com/vllm-project/vllm/releases/download/v0.31.0/vllm-0.31.0%2Bcpu-cp312-cp312-macosx_11_0_arm64.whl", marker = "sys_platform == 'darwin'" },
+    { url = "https://github.com/SystemPanic/vllm-windows/releases/download/v0.32.0/vllm-0.32.0%2Bcu132-cp312-cp312-win_amd64.whl", marker = "sys_platform == 'win32'" },
+]
+torch = [{ index = "pytorch-cu130", marker = "sys_platform == 'win32'" }]
+torchvision = [{ index = "pytorch-cu130", marker = "sys_platform == 'win32'" }]
+torchaudio = [{ index = "pytorch-cu130", marker = "sys_platform == 'win32'" }]
